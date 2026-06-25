@@ -497,7 +497,9 @@ def score_all(tech, fp, news):
             if asc>=10: pos.append(f"✅ {subj[:65]}")
             elif asc<=0: neg2.append(f"⚠️ {subj[:65]}")
         bm=news.get("board_meeting")
-        if bm: pos.append(f"✅ Board meeting {bm.get('meeting_date','')}: {bm.get('purpose','')[:45]}")
+        if bm:
+        bm_d=bm.get("meeting_date",""); bm_p=bm.get("purpose","")[:45]
+        pos.append(f"✅ Board meeting {bm_d}: {bm_p}")
 
     if mp:
         mn_stage=tech['min']['stage']; mn_n=tech['min']['n']
@@ -634,12 +636,13 @@ def build_html(sym, data, tech, fp, sc, chart_js):
     # MACD label
     mh=macd[2]; ml="N/A"; mc="ts-v"
     if mh is not None:
-        ml=f"{'Bullish' if mh>0 else 'Bearish'} {'+' if mh>0 else ''}{mh:.2f}"
+        ml_word="Bullish" if mh>0 else "Bearish"; ml_sign="+" if mh>0 else ""
+    ml=f"{ml_word} {ml_sign}{mh:.2f}"
         mc="bull" if mh>0 else "bear"
 
     # Stoch RSI
     sk=srsi[0] if srsi else None
-    sl2=f"{sk:.2f} {'⚠' if sk and sk>80 else ''}" if sk else "N/A"
+    sl2=(f"{sk:.2f} ⚠" if sk>80 else f"{sk:.2f}") if sk else "N/A"
     sc3=("bull" if sk and sk<30 else ("bear" if sk and sk>80 else "ts-v")) if sk else "ts-v"
 
     # Annual table
@@ -734,6 +737,9 @@ def build_html(sym, data, tech, fp, sc, chart_js):
     _ap=ohlc.get('ap'); ap_str = f"{_ap:,.2f}" if _ap else "N/A"
     _tg=sc.get('target'); target_str = ("₹"+f"{_tg:,.2f}") if _tg else "N/A"
     _sl=sc.get('sl'); sl_str = ("₹"+f"{_sl:,.2f}") if _sl else "N/A"
+    _t3=ret.get('t3m'); t3m_s = ("₹"+f"{_t3:,.2f}") if _t3 else "N/A"
+    _t6=ret.get('t6m'); t6m_s = ("₹"+f"{_t6:,.2f}") if _t6 else "N/A"
+    _ty=ret.get('t1y'); t1y_s = ("₹"+f"{_ty:,.2f}") if _ty else "N/A"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -1045,9 +1051,9 @@ td:not(:first-child){{text-align:right;}}tr:last-child td{{border-bottom:none;}}
         {ret_rows}
         <tr style="background:#F0FDF9;"><td colspan="2" style="font-size:9px;font-weight:800;color:#009B77;padding:5px 6px;">📈 CAGR-Based Projections</td></tr>
         <tr><td>CAGR 1Y (est.)</td><td style="text-align:right;font-weight:700;color:#00C896;">{("+"+str(ret.get("cagr1y"))) if ret.get("cagr1y") and ret["cagr1y"]>0 else str(ret.get("cagr1y","N/A"))}{"%" if ret.get("cagr1y") else ""}</td></tr>
-        <tr><td>Target 3M</td><td style="text-align:right;font-weight:700;color:#00C896;">{"₹"+f"{ret['t3m']:,.2f}" if ret.get("t3m") else "N/A"}</td></tr>
-        <tr><td>Target 6M</td><td style="text-align:right;font-weight:700;color:#00C896;">{"₹"+f"{ret['t6m']:,.2f}" if ret.get("t6m") else "N/A"}</td></tr>
-        <tr><td>Target 1Y</td><td style="text-align:right;font-weight:700;color:#00C896;">{"₹"+f"{ret['t1y']:,.2f}" if ret.get("t1y") else "N/A"}</td></tr>
+        <tr><td>Target 3M</td><td style="text-align:right;font-weight:700;color:#00C896;">{t3m_s}</td></tr>
+        <tr><td>Target 6M</td><td style="text-align:right;font-weight:700;color:#00C896;">{t6m_s}</td></tr>
+        <tr><td>Target 1Y</td><td style="text-align:right;font-weight:700;color:#00C896;">{t1y_s}</td></tr>
       </tbody>
     </table>
   </div>
@@ -1149,11 +1155,12 @@ def main():
 
     # 1. Fetch all data
     data = fetch_all(sym)
-    print(f"[MarketVeda] Data fetched. EOD rows: {len(data['eod'])}", file=sys.stderr)
+    eod_n=len(data["eod"]); print(f"[MarketVeda] Data fetched. EOD rows: {eod_n}", file=sys.stderr)
 
     # 2. Compute technicals
     tech = compute_all(data)
-    print(f"[MarketVeda] LTP: ₹{tech['ltp']:,.2f}  RSI: {tech['rsi']}  Minervini: {tech['min']['stage']}", file=sys.stderr)
+    _ltp=tech["ltp"]; _rsi=tech["rsi"]; _stg=tech["min"]["stage"]
+    print(f"[MarketVeda] LTP: ₹{_ltp:,.2f}  RSI: {_rsi}  Minervini: {_stg}", file=sys.stderr)
 
     # 3. Resolve sector + name from financials.json (dynamic — no hardcoding)
     fin = data["fin"]
@@ -1164,11 +1171,12 @@ def main():
 
     # 4. Process financials
     fp = process_fin(fin, sym, sector)
-    print(f"[MarketVeda] Sector: {sector}  PE: {cur_pe}  Verdict: {fp['verdict']}", file=sys.stderr)
+    _vrd=fp["verdict"]; print(f"[MarketVeda] Sector: {sector}  PE: {cur_pe}  Verdict: {_vrd}", file=sys.stderr)
 
     # 5. Score
     sc = score_all(tech, fp, data["news"])
-    print(f"[MarketVeda] Action: {sc['action']}  Confidence: {sc['rsco']}%  Sentiment: {sc['cons']}", file=sys.stderr)
+    _act=sc["action"]; _rsc=sc["rsco"]; _cns=sc["cons"]
+    print(f"[MarketVeda] Action: {_act}  Confidence: {_rsc}%  Sentiment: {_cns}", file=sys.stderr)
 
     # 6. Build chart data
     chart_js = build_chart(data["eod"], data["candles"])
