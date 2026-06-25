@@ -1,0 +1,38 @@
+# ════════════════════════════════════════════════════════════════
+# MarketVeda Dashboard — On-Demand Generator
+# Triggered by: Claude skill, any AI, or GitHub web UI
+# Input: NSE symbol (any NIFTY500 / FnO stock)
+# Output: self-contained HTML artifact (valid 24 hours)
+# ════════════════════════════════════════════════════════════════
+name: dashboard
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: 'NSE Symbol  e.g. CGPOWER  RELIANCE  HDFCBANK  TITAN'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install requests --quiet
+
+      - name: Generate dashboard
+        run: python build.py "${{ github.event.inputs.symbol }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarketVeda-${{ github.event.inputs.symbol }}
+          path: out.html
+          retention-days: 1
