@@ -499,7 +499,9 @@ def score_all(tech, fp, news):
         bm=news.get("board_meeting")
         if bm: pos.append(f"✅ Board meeting {bm.get('meeting_date','')}: {bm.get('purpose','')[:45]}")
 
-    if mp: pos.append(f"✅ Minervini SEPA {tech['min']['stage']} — {tech['min']['n']}/6 filters")
+    if mp:
+        mn_stage=tech['min']['stage']; mn_n=tech['min']['n']
+        pos.append(f"✅ Minervini SEPA {mn_stage} — {mn_n}/6 filters")
     if mh and mh>0: pos.append(f"✅ MACD bullish (histogram +{mh:.2f})")
     elif mh and mh<0: neg2.append(f"⚠️ MACD bearish (histogram {mh:.2f})")
     h52=tech["h52"]; ltp=tech["ltp"]
@@ -507,11 +509,15 @@ def score_all(tech, fp, news):
         pf=(h52-ltp)/h52*100
         if pf<5: pos.append(f"✅ VCP setup — CMP {pf:.1f}% from 52W high ₹{h52:.1f}")
         elif pf>30: neg2.append(f"⚠️ CMP {pf:.0f}% below 52W high — weak trend")
-    if tech["rs"]>=1.3: pos.append(f"✅ Strong RS {tech['rs']:.2f} — outperforming Nifty50")
+    if tech["rs"]>=1.3:
+        rs_v=tech['rs']; pos.append(f"✅ Strong RS {rs_v:.2f} — outperforming Nifty50")
     if flags.get("low_debt"): pos.append("✅ Low/zero debt — strong balance sheet")
-    if flags.get("strong_revenue") and fp["rev_cagr"]: pos.append(f"✅ Revenue CAGR {fp['rev_cagr']}% (5Y)")
-    if flags.get("strong_profit") and fp["np_cagr"]: pos.append(f"✅ Profit CAGR {fp['np_cagr']}% (5Y)")
-    if "EXPENSIVE" in fp["verdict"]: neg2.append(f"⚠️ P/E {fp['cur_pe']}x expensive vs {fp['pe5']}x 5Y mean")
+    if flags.get("strong_revenue") and fp["rev_cagr"]:
+        rc=fp['rev_cagr']; pos.append(f"✅ Revenue CAGR {rc}% (5Y)")
+    if flags.get("strong_profit") and fp["np_cagr"]:
+        nc=fp['np_cagr']; pos.append(f"✅ Profit CAGR {nc}% (5Y)")
+    if "EXPENSIVE" in fp["verdict"]:
+        cp2=fp['cur_pe']; p5=fp['pe5']; neg2.append(f"⚠️ P/E {cp2}x expensive vs {p5}x 5Y mean")
     sk2=tech["srsi"][0]
     if sk2 and sk2>80: neg2.append(f"⚠️ Stoch RSI {sk2:.1f} — overbought")
     elif sk2 and sk2<20: pos.append(f"✅ Stoch RSI {sk2:.1f} — oversold, watch reversal")
@@ -637,7 +643,7 @@ def build_html(sym, data, tech, fp, sc, chart_js):
     sc3=("bull" if sk and sk<30 else ("bear" if sk and sk>80 else "ts-v")) if sk else "ts-v"
 
     # Annual table
-    ann_hdr="".join(f"<th>{r['yr']}</th>" for r in fp["annual"])
+    ann_hdr="".join("<th>"+str(r['yr'])+"</th>" for r in fp["annual"])
     def arow(lbl,key,suf="",pfx=""):
         cells=""
         for i,r in enumerate(fp["annual"]):
@@ -650,10 +656,12 @@ def build_html(sym, data, tech, fp, sc, chart_js):
               arow("EPS (₹)","eps")+arow("ROE %","roe","%"))
 
     # Quarterly table
-    qtr_hdr="".join(
-        f'<th{"" if i<len(fp["qtrs"])-1 else " style=\"background:#007A5E;\""}>{"★ " if i==len(fp["qtrs"])-1 else ""}{q["q"]}</th>'
-        for i,q in enumerate(fp["qtrs"])
-    )
+    qtr_hdr=""
+    for i,q in enumerate(fp["qtrs"]):
+        is_last = i==len(fp["qtrs"])-1
+        th_style = ' style="background:#007A5E;"' if is_last else ''
+        star = '★ ' if is_last else ''
+        qval=q["q"]; qtr_hdr += f'<th{th_style}>{star}{qval}</th>' 
     def qrow(lbl,key,suf=""):
         cells=""
         for i,q in enumerate(fp["qtrs"]):
@@ -661,10 +669,10 @@ def build_html(sym, data, tech, fp, sc, chart_js):
             st=' style="background:#E6FAF5;font-weight:800;color:#009B77;"' if last else ""
             cells+=f"<td{st}>{v:,.0f}{suf}</td>" if isinstance(v,(int,float)) else f"<td{st}>N/A</td>"
         return f"<tr><td>{lbl}</td>{cells}</tr>"
-    qtr_beat="".join(
-        f'<td class="beat"{"" if i<len(fp["qtrs"])-1 else " style=\"background:#E6FAF5;\""}>BEAT</td>'
-        for i in range(len(fp["qtrs"]))
-    )
+    qtr_beat=""
+    for i in range(len(fp["qtrs"])):
+        beat_style = ' style="background:#E6FAF5;"' if i==len(fp["qtrs"])-1 else ''
+        qtr_beat += f'<td class="beat"{beat_style}>BEAT</td>' 
     qtr_body=qrow("Revenue","rev")+qrow("Net Profit","np")+qrow("EPS (₹)","eps")+qrow("OPM %","opm","%")+f"<tr><td>Result</td>{qtr_beat}</tr>"
 
     # Returns table rows
@@ -699,11 +707,11 @@ def build_html(sym, data, tech, fp, sc, chart_js):
     neg_html="".join(f'<div class="trg">{t}</div>' for t in sc["neg"][:4])
 
     # OI table
-    oi_rows="".join(
-        f'<tr><td>{r["date"][5:]}</td><td style="text-align:right;">{fvol(r["oi"])}</td>'
-        f'<td style="text-align:right;">₹{r["ltp"]:,.1f}</td></tr>'
-        for r in (data["oi"] or [])[-5:]
-    ) or '<tr><td colspan="3" style="color:#9CA3AF;">Non-FnO stock</td></tr>'
+    oi_rows_list = []
+    for r in (data["oi"] or [])[-5:]:
+        rd=r["date"][5:]; ro=fvol(r["oi"]); rl=r["ltp"]
+        oi_rows_list.append(f'<tr><td>{rd}</td><td style="text-align:right;">{ro}</td><td style="text-align:right;">₹{rl:,.1f}</td></tr>')
+    oi_rows = "".join(oi_rows_list) or '<tr><td colspan="3" style="color:#9CA3AF;">Non-FnO stock</td></tr>'
 
     # Recommendation tag
     act=sc["action"]
@@ -717,9 +725,15 @@ def build_html(sym, data, tech, fp, sc, chart_js):
     note_cagr=(f"CAGR (1Y est.): {cagr1y:+.1f}%. At this rate → 3M: ₹{t3m:.2f} | 6M: ₹{t6m:.2f} | 1Y: ₹{t1y:.2f}"
                if cagr1y else "Insufficient price history for CAGR calculation.")
 
-    deliv_html=(f"{data['deliv_pct']:.1f}% ({data['deliv_date']})"
-                if data.get("deliv_pct") else "N/A")
+    _dp=data.get('deliv_pct'); _dd=data.get('deliv_date','')
+    deliv_html=(f"{_dp:.1f}% ({_dd})" if _dp else "N/A")
     deliv_col="#009B77" if data.get("deliv_pct") and data["deliv_pct"]>40 else "#9CA3AF"
+
+
+    # Pre-compute variables to avoid f-string expression issues in Python 3.11
+    _ap=ohlc.get('ap'); ap_str = f"{_ap:,.2f}" if _ap else "N/A"
+    _tg=sc.get('target'); target_str = ("₹"+f"{_tg:,.2f}") if _tg else "N/A"
+    _sl=sc.get('sl'); sl_str = ("₹"+f"{_sl:,.2f}") if _sl else "N/A"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -854,7 +868,7 @@ td:not(:first-child){{text-align:right;}}tr:last-child td{{border-bottom:none;}}
       <div><div class="oh-l">High</div><div class="oh-v" style="color:#00C896">{ohlc["h"]:,.2f}</div></div>
       <div><div class="oh-l">Low</div><div class="oh-v" style="color:#F43F5E">{ohlc["l"]:,.2f}</div></div>
       <div><div class="oh-l">Prev Close</div><div class="oh-v">{ohlc["pc"]:,.2f}</div></div>
-      <div><div class="oh-l">Avg Price</div><div class="oh-v">{f"{ohlc['ap']:,.2f}" if ohlc["ap"] else "N/A"}</div></div>
+      <div><div class="oh-l">Avg Price</div><div class="oh-v">{ap_str}</div></div>
       <div><div class="oh-l">Volume</div><div class="oh-v">{fvol(ohlc["vol"])}</div></div>
       <div><div class="oh-l">Upper Circuit</div><div class="oh-v">₹{upc:,.2f}</div></div>
       <div><div class="oh-l">Lower Circuit</div><div class="oh-v">₹{loc:,.2f}</div></div>
@@ -971,7 +985,7 @@ td:not(:first-child){{text-align:right;}}tr:last-child td{{border-bottom:none;}}
     <div class="sec">Recommendation</div>
     <div class="{act_class}">{act}</div>
     <div style="margin-top:7px;"><div class="vol-lbl">Target Price (12M)</div>
-    <div style="font-size:18px;font-weight:900;color:#111827;">{"₹"+f"{sc['target']:,.2f}" if sc["target"] else "N/A"}</div></div>
+    <div style="font-size:18px;font-weight:900;color:#111827;">{target_str}</div></div>
     <div style="margin-top:5px;"><div class="vol-lbl">Upside Potential</div>
     <div style="font-size:15px;font-weight:800;color:#00C896;">{("+" if sc["up"]>=0 else "")+str(sc["up"])+"%"}</div></div>
     <div style="margin-top:5px;">
@@ -982,7 +996,7 @@ td:not(:first-child){{text-align:right;}}tr:last-child td{{border-bottom:none;}}
       <div class="conf-bar"><div class="conf-fill" style="width:{sc['rsco']}%;"></div></div>
     </div>
     <div style="margin-top:6px;font-size:10px;color:#374151;line-height:1.6;">
-      Stop-Loss: <b style="color:#F43F5E;">{"₹"+f"{sc['sl']:,.2f}" if sc["sl"] else "N/A"}</b><br>
+      Stop-Loss: <b style="color:#F43F5E;">{sl_str}</b><br>
       Risk:Reward = <b>1 : {sc["rr"]}</b><br>
       Method: RS/VCP/Minervini SEPA
     </div>
