@@ -498,8 +498,8 @@ def score_all(tech, fp, news):
             elif asc<=0: neg2.append(f"⚠️ {subj[:65]}")
         bm=news.get("board_meeting")
         if bm:
-        bm_d=bm.get("meeting_date",""); bm_p=bm.get("purpose","")[:45]
-        pos.append(f"✅ Board meeting {bm_d}: {bm_p}")
+            bm_d=bm.get("meeting_date",""); bm_p=bm.get("purpose","")[:45]
+            pos.append(f"✅ Board meeting {bm_d}: {bm_p}")
 
     if mp:
         mn_stage=tech['min']['stage']; mn_n=tech['min']['n']
@@ -637,7 +637,7 @@ def build_html(sym, data, tech, fp, sc, chart_js):
     mh=macd[2]; ml="N/A"; mc="ts-v"
     if mh is not None:
         ml_word="Bullish" if mh>0 else "Bearish"; ml_sign="+" if mh>0 else ""
-    ml=f"{ml_word} {ml_sign}{mh:.2f}"
+        ml=f"{ml_word} {ml_sign}{mh:.2f}"
         mc="bull" if mh>0 else "bear"
 
     # Stoch RSI
