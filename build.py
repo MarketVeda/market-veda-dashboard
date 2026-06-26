@@ -273,6 +273,29 @@ def fetch(sym):
             if candles:
                 break
 
+    # ── OPTIONAL external live-quote overlay (opt-in, never breaks the pipeline)──
+    # Enable with  MV_VERIFY_EXTERNAL=1 .  Uses NSE (authoritative for live quotes)
+    # to override price/OHLC/prev-close when it differs from the database snapshot.
+    # Only fetch_nse_quote is called here (NOT our own fetch) so there is no
+    # recursion, and the whole block is guarded so any failure is a silent no-op.
+    import os
+    if os.environ.get("MV_VERIFY_EXTERNAL") == "1":
+        try:
+            from verify_external import fetch_nse_quote
+            nse = fetch_nse_quote(sym)
+            if nse and nse.get("ltp"):
+                for k in ("open", "high", "low", "prev_close"):
+                    if nse.get(k) is not None:
+                        live[k] = nse[k]
+                live["ltp"] = nse["ltp"]
+                if nse.get("pct_change") is not None:
+                    live["change_pct"] = nse["pct_change"]
+                if eod:
+                    eod[-1]["c"] = nse["ltp"]      # keep chart/returns aligned
+                print(f"[MarketVeda] External NSE overlay applied: {nse}", file=sys.stderr)
+        except Exception as e:
+            print(f"[MarketVeda] External overlay skipped ({e})", file=sys.stderr)
+
     return {
         "sym":        sym,
         "live":       live,
@@ -310,7 +333,7 @@ def run(sym):
     name   = get_name(sym, fin)
 
     from financials import process
-    fp = process(fin, sym, sector)
+    fp = process(fin, sym, sector, data.get("eod"))
     print(f"[MarketVeda] Sector:{sector}  PE:{fp['pe'].get('cur_pe')}  "
           f"ROE:{fp.get('km',{}).get('ROE %')}  "
           f"Value score:{fp['value'].get('score', 0)}", file=sys.stderr)
