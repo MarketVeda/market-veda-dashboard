@@ -320,12 +320,12 @@ body{{background:#0F0F0F;font-family:'Segoe UI',system-ui,sans-serif;font-size:1
 .panel{{background:#fff;border-radius:8px;border:1px solid #E5E7EB;padding:10px 12px;box-shadow:0 1px 4px rgba(0,200,150,.06)}}
 .panel:hover{{border-color:#00C896;box-shadow:0 0 12px rgba(0,200,150,.15);transition:.3s}}
 .row{{display:grid;gap:10px;margin-bottom:10px}}
-.r1{{grid-template-columns:.9fr .8fr 1fr}}
+.r1{{grid-template-columns:.7fr .65fr 1.6fr .75fr}}
 .r2{{grid-template-columns:1fr 1fr 1fr 1fr}}
 .r3{{grid-template-columns:1.1fr 1fr .85fr .85fr}}
 .r4{{grid-template-columns:1.6fr .65fr 1.75fr}}
 .r5{{grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:0}}
-.r-chart{{grid-template-columns:1fr;margin-bottom:10px}}
+.r-chart{{display:none}}
 .co-name{{font-size:22px;font-weight:900;color:#00C896;margin-bottom:3px;line-height:1;text-shadow:0 0 12px rgba(0,200,150,.3)}}
 .co-full{{font-size:9px;color:#9CA3AF;margin-bottom:8px}}
 .ov-grid{{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}}
@@ -342,7 +342,7 @@ body{{background:#0F0F0F;font-family:'Segoe UI',system-ui,sans-serif;font-size:1
 .chart-tabs{{display:flex;gap:3px;flex-wrap:wrap}}
 .ct-btn{{padding:3px 10px;border-radius:3px;border:1px solid #E5E7EB;background:transparent;color:#9CA3AF;font-size:11px;cursor:pointer;font-weight:600;transition:.15s}}
 .ct-btn.active,.ct-btn:hover{{background:#E6FAF5;color:#009B77;border-color:#00C896}}
-#chartWrap{{position:relative;height:460px;background:#FAFFFE;border-radius:6px;border:1px solid #D1FAF0}}
+#chartWrap{{position:relative;height:280px;background:#FAFFFE;border-radius:6px;border:1px solid #D1FAF0}}
 .ts-r{{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F3F4F6}}
 .ts-r:last-child{{border-bottom:none}}
 .ts-l{{font-size:11px;color:#374151}}
@@ -448,23 +448,7 @@ tr:nth-child(even) td{{background:#F4FDFB}}
       <div><div class="oh-l">P/B</div><div class="oh-v">{pb_str}</div></div>
     </div>
   </div>
-  <div class="panel">
-    <div class="sec">Technical Summary</div>
-    <div class="ts-r"><span class="ts-l">Trend</span><span class="{trend_cls}">{trend_txt}</span></div>
-    <div class="ts-r"><span class="ts-l">RSI (14)</span><span class="ts-v">{rsi_s}</span></div>
-    <div class="ts-r"><span class="ts-l">MACD</span><span class="{mc}">{ml}</span></div>
-    <div class="ts-r"><span class="ts-l">ADX (14)</span><span class="ts-v">{adx_s}</span></div>
-    <div class="ts-r"><span class="ts-l">Stoch RSI</span><span class="{sc3}">{sl2}</span></div>
-    <div class="ts-r"><span class="ts-l">CCI (20)</span><span class="ts-v">{cci_s}</span></div>
-    <div class="ts-r"><span class="ts-l">RS Percentile</span><span class="{rs_cls}">{rsp}/99</span></div>
-    <div class="ts-r"><span class="ts-l">MAs Bullish</span><span class="{bull_cls}">{bull_n}/4</span></div>
-    <div class="ts-r"><span class="ts-l">vs SMA20</span><span class="{dev20_cls}">{dev20:+.1f}%</span></div>
-    <div class="ts-r"><span class="ts-l">vs SMA200</span><span class="{dev200_cls}">{dev200:+.1f}%</span></div>
-  </div>
-</div>
-
-<!-- Full-width chart row -->
-<div class="row r-chart">
+  <div class="panel" style="padding:10px 14px">
   <div class="panel" style="padding:10px 14px">
     <div class="chart-toolbar">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -495,7 +479,53 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     </div>
     <div id="chartWrap"><canvas id="pc"></canvas></div>
   </div>
+
+  <div class="panel">
+    <div class="sec">Technical Summary</div>
+    <div class="ts-r"><span class="ts-l">Trend</span><span class="{trend_cls}">{trend_txt}</span></div>
+    <div class="ts-r"><span class="ts-l">RSI (14)</span><span class="ts-v">{rsi_s}</span></div>
+    <div class="ts-r"><span class="ts-l">MACD</span><span class="{mc}">{ml}</span></div>
+    <div class="ts-r"><span class="ts-l">ADX (14)</span><span class="ts-v">{adx_s}</span></div>
+    <div class="ts-r"><span class="ts-l">Stoch RSI</span><span class="{sc3}">{sl2}</span></div>
+    <div class="ts-r"><span class="ts-l">CCI (20)</span><span class="ts-v">{cci_s}</span></div>
+    <div class="ts-r"><span class="ts-l">RS Percentile</span><span class="{rs_cls}">{rsp}/99</span></div>
+    <div class="ts-r"><span class="ts-l">MAs Bullish</span><span class="{bull_cls}">{bull_n}/4</span></div>
+    <div class="ts-r"><span class="ts-l">vs SMA20</span><span class="{dev20_cls}">{dev20:+.1f}%</span></div>
+    <div class="ts-r"><span class="ts-l">vs SMA200</span><span class="{dev200_cls}">{dev200:+.1f}%</span></div>
+  </div>
 </div>
+
+<!-- Full-width chart row -->
+  <div class="panel" style="padding:10px 14px">
+    <div class="chart-toolbar">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="tf-row">
+          <button class="tf-btn active" onclick="setTF('1M',this)">1M</button>
+          <button class="tf-btn" onclick="setTF('2M',this)">2M</button>
+          <button class="tf-btn" onclick="setTF('3M',this)">3M</button>
+          <button class="tf-btn" onclick="setTF('6M',this)">6M</button>
+          <button class="tf-btn" onclick="setTF('1Y',this)">1Y</button>
+          <button class="tf-btn" onclick="setTF('2Y',this)">2Y</button>
+          <button class="tf-btn" onclick="setTF('5Y',this)">5Y</button>
+        </div>
+        <div class="chart-tabs">
+          <button class="ct-btn active" onclick="setChart('price',this)">Price</button>
+          <button class="ct-btn" onclick="setChart('pe',this)">PE Ratio</button>
+          <button class="ct-btn" onclick="setChart('pb',this)">Price to Book</button>
+        </div>
+      </div>
+      <div class="dma-legend">
+        <span><span class="dma-dot" style="background:#00C896"></span>DMA10</span>
+        <span><span class="dma-dot" style="background:#009B77"></span>DMA20</span>
+        <span><span class="dma-dot" style="background:#F59E0B"></span>DMA50</span>
+        <span><span class="dma-dot" style="background:#374151;height:3px"></span>DMA100</span>
+        <span><span class="dma-dot" style="background:#F43F5E;height:3px"></span>DMA200</span>
+        <span><span class="dma-dot" style="background:rgba(0,200,150,.4)"></span>Vol↑</span>
+        <span><span class="dma-dot" style="background:rgba(244,63,94,.4)"></span>Vol↓</span>
+      </div>
+    </div>
+    <div id="chartWrap"><canvas id="pc"></canvas></div>
+  </div>
 
 <!-- Row 2: MA | Valuation | Volume | Risk -->
 <div class="row r2">
