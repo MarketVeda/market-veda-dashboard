@@ -234,6 +234,7 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     date_str=data.get("date_str","")
     time_str=data.get("time_str","")
 
+    safe_fn=sym+"_"+date_str.replace(" ","_")+".html"
     return f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MarketVeda — {sym} — {date_str}</title>
@@ -626,7 +627,7 @@ const TF_N={{'1M':21,'2M':42,'3M':63,'6M':126,'1Y':252,'2Y':504,'5Y':9999}};
 function dlPage(){{
   const b=new Blob([document.documentElement.outerHTML],{{type:'text/html;charset=utf-8'}});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);
-  a.download='{sym}_{date_str.replace(" ","_")}.html';a.click();URL.revokeObjectURL(a.href);
+  a.download='{safe_fn}';a.click();URL.revokeObjectURL(a.href);
 }}
 
 function computeSMA(data,n){{
