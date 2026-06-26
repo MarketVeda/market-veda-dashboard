@@ -1,98 +1,227 @@
 # SKILL: MarketVeda Dashboard Generator
 
-**Repo:** `github.com/MarketVeda/market-veda-dashboard`
-**When to use:** User asks for a stock dashboard, stock analysis, or "give me SYMBOL dashboard"
+**Repository:** `github.com/MarketVeda/market-veda-dashboard`  
+**Works with:** Claude (mobile app, web, API) · ChatGPT · Gemini · Any AI with API access  
+**Purpose:** Generate a complete NSE stock intelligence dashboard for any symbol on demand
 
 ---
 
-## What This Does
+## TRIGGER PHRASES
 
-Generates a complete HTML dashboard for any NSE stock symbol by triggering a GitHub Actions workflow. The workflow fetches live data, computes all indicators, and produces a self-contained HTML file (~160 KB) the user downloads and opens.
+When the user says any of these → run the workflow:
 
-Works for any symbol in NIFTY500 or FnO universe.
-
----
-
-## How to Trigger (GitHub Actions API)
-
-```bash
-curl -X POST \
-  -H "Authorization: token GITHUB_PAT" \
-  -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/MarketVeda/market-veda-dashboard/actions/workflows/dashboard.yml/dispatches \
-  -d '{"ref":"main","inputs":{"symbol":"SYMBOL_HERE"}}'
+```
+"give me [SYMBOL] dashboard"
+"generate dashboard for [SYMBOL]"
+"[SYMBOL] dashboard"
+"dashboard [SYMBOL]"
+"analyse [SYMBOL]"
+"[SYMBOL] report"
+"show me [SYMBOL]"
+"stock analysis for [SYMBOL]"
 ```
 
-Replace `SYMBOL_HERE` with the NSE symbol (e.g. `CGPOWER`, `RELIANCE`, `HDFCBANK`).
+If no symbol is specified → ask: **"Which NSE symbol? (e.g. CGPOWER, RELIANCE, HDFCBANK)"**
 
 ---
 
-## How to Check Status
+## STEP 1 — TRIGGER THE GITHUB ACTIONS WORKFLOW
 
-```bash
-curl -H "Authorization: token GITHUB_PAT" \
-  https://api.github.com/repos/MarketVeda/market-veda-dashboard/actions/runs?per_page=1
+### API Call (for Claude/ChatGPT/Gemini with tool/API access)
+
+```
+METHOD: POST
+URL: https://api.github.com/repos/MarketVeda/market-veda-dashboard/actions/workflows/dashboard.yml/dispatches
+HEADERS:
+  Authorization: token GITHUB_PAT_TOKEN
+  Accept: application/vnd.github.v3+json
+  Content-Type: application/json
+BODY:
+  {
+    "ref": "main",
+    "inputs": {
+      "symbol": "SYMBOL_HERE"
+    }
+  }
 ```
 
-Look for `"status": "completed"` and `"conclusion": "success"`.
+A successful trigger returns **HTTP 204** (No Content) — this is correct, not an error.
 
----
+### For Claude Mobile App (no API tool access)
+If Claude cannot make direct API calls, give the user this exact URL to open in their browser:
 
-## How to Get the Download URL
-
-```bash
-# Get run ID from status check, then:
-curl -H "Authorization: token GITHUB_PAT" \
-  https://api.github.com/repos/MarketVeda/market-veda-dashboard/actions/runs/RUN_ID/artifacts
+```
+https://github.com/MarketVeda/market-veda-dashboard/actions/workflows/dashboard.yml
 ```
 
-Returns artifact download URL. Artifact name: `MarketVeda-SYMBOL`.
+Then say:
+> "Tap **Run workflow** → type **SYMBOL** → tap **Run workflow** (green button). Takes ~45 seconds. The dashboard URL will appear in the Summary."
 
 ---
 
-## Simpler: Tell the User to Do It From GitHub Web UI
+## STEP 2 — WAIT FOR COMPLETION (~30–45 seconds)
 
-If API triggering is not available, give the user these steps:
-1. Open `github.com/MarketVeda/market-veda-dashboard`
-2. Click **Actions** → **dashboard** → **Run workflow**
-3. Enter symbol (e.g. `TITAN`)
-4. Click **Run workflow**
-5. Wait ~60 seconds → click completed run → **Artifacts** → download
+Check workflow status:
 
----
+```
+METHOD: GET
+URL: https://api.github.com/repos/MarketVeda/market-veda-dashboard/actions/runs?per_page=1
+HEADERS:
+  Authorization: token GITHUB_PAT_TOKEN
+```
 
-## What the Dashboard Contains
-
-5 rows of panels:
-
-**Row 1:** Overview | Live Price + OHLCV | Interactive Chart (1D–5Y) | Technical Summary (RSI/MACD/ADX/StochRSI/CCI/Minervini)
-
-**Row 2:** Moving Averages (20/50/100/200 SMA+EMA) | Valuation Metrics | Volume Analysis | Risk Analysis (5 categories)
-
-**Row 3:** 5-Year Financial Summary | Key Triggers (positive/negative) | Support & Resistance (S3–R3 pivots) | BUY/HOLD/SELL Recommendation
-
-**Row 4:** 8-Quarter Results Tracker | Analyst Sentiment (donut chart) | Notes
-
-**Row 5 (NEW):** Price Move History (1D/2D/5D/7D/1W/1M/2M/6M + CAGR targets) | PE Analysis (current vs 5Y/10Y mean, sector, peers) | Entry/Exit Strategy | OI & Delivery
+Poll every 10 seconds until:
+```json
+{
+  "status": "completed",
+  "conclusion": "success"
+}
+```
 
 ---
 
-## Important Notes
+## STEP 3 — GIVE THE USER THE DIRECT URL
 
-- **No symbol hardcoding.** Works for any NSE symbol. Company name and sector are read dynamically from `financials.json`.
-- **No secrets required.** Logo is embedded in `build.py`. No `MARKETVEDA_LOGO_B64` secret needed.
-- **No local machine.** Everything runs on GitHub Actions. User only needs a browser.
-- **Artifact expires in 24 hours.** User should download immediately after generation.
-- **Data freshness:** Live price from latest hourly snapshot. EOD data from last market close. Financials updated 4:30 PM IST daily.
+Construct the dashboard URL:
+
+```
+https://marketveda.github.io/market-veda-dashboard/SYMBOL_YYYY-MM-DD.html
+```
+
+Get today's date in IST (UTC+5:30) → format as YYYY-MM-DD.
+
+**Example:**
+```
+https://marketveda.github.io/market-veda-dashboard/CGPOWER_2026-06-26.html
+```
+
+**All dashboards index:**
+```
+https://marketveda.github.io/market-veda-dashboard/
+```
 
 ---
 
-## Example User Requests → Action
+## WHAT TO SAY TO THE USER
 
-| User says | Claude does |
+### After triggering:
+> "Generating your **CGPOWER** dashboard now — takes about 45 seconds..."
+
+### After success:
+> ✅ **CGPOWER Dashboard Ready**
+>
+> 🔗 Open directly in your browser (no download needed):
+> `https://marketveda.github.io/market-veda-dashboard/CGPOWER_2026-06-26.html`
+>
+> 📋 All your past dashboards: `https://marketveda.github.io/market-veda-dashboard/`
+
+### If workflow fails:
+> "The dashboard generation encountered an error. Please try running it again from GitHub Actions, or let me know and I'll help debug."
+
+---
+
+## GITHUB PAT TOKEN
+
+The user needs a GitHub Personal Access Token with these scopes:
+- `repo` (full repository access)
+- `workflow` (trigger GitHub Actions)
+
+**How to create one:**
+1. Go to `github.com/settings/tokens`
+2. Click **Generate new token (classic)**
+3. Name: `MarketVeda Dashboard`
+4. Check: `repo` and `workflow`
+5. Click **Generate token**
+6. Copy the token — shown only once
+
+**Token expiry:** Tokens last 1 year. The token `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` expires **June 2027**.
+
+---
+
+## VALID SYMBOLS
+
+Any NSE stock in NIFTY 500 or F&O universe. Examples:
+
+**Large Cap:** RELIANCE · HDFCBANK · ICICIBANK · TCS · INFY · SBIN · BAJFINANCE · KOTAKBANK  
+**Mid Cap:** CGPOWER · Dixon · KAYNES · CDSL · ANGELONE · BSE · PERSISTENT  
+**FMCG:** HINDUNILVR · NESTLEIND · MARICO · DABUR · BRITANNIA  
+**Pharma:** SUNPHARMA · DRREDDY · CIPLA · DIVISLAB · LUPIN  
+**Auto:** MARUTI · M&M · TVSMOTOR · BAJAJ-AUTO · EICHERMOT  
+**IT:** TCS · INFY · WIPRO · TECHM · HCLTECH · MPHASIS  
+**Energy:** RELIANCE · NTPC · POWERGRID · TATAPOWER · ONGC  
+**Defence:** HAL · BEL · BDL · GRSE · MAZDOCK  
+
+If symbol not recognised → still try. The dashboard will show available data and mark missing fields as N/A.
+
+---
+
+## DASHBOARD CONTENTS
+
+The HTML dashboard has 5 rows:
+
+| Row | What's Inside |
 |---|---|
-| "give me CGPOWER dashboard" | Trigger workflow with symbol=CGPOWER |
-| "dashboard for Reliance" | Trigger workflow with symbol=RELIANCE |
-| "analyse HDFCBANK for me" | Trigger workflow with symbol=HDFCBANK |
-| "stock report for Titan" | Trigger workflow with symbol=TITAN |
-| "generate dashboard" (no symbol) | Ask: "Which NSE symbol?" |
+| **Row 1** | Company overview · Live price + OHLCV · **Candlestick chart with S&R zones** · Technical summary (RSI/MACD/ADX/StochRSI/CCI/RS/Minervini) |
+| **Row 2** | Moving averages (9/20/50/100/200 SMA+EMA) · Valuation metrics · Volume analysis · Risk analysis (5 categories) |
+| **Row 3** | 5-year financials table · Key triggers (positive + negative) · Support & Resistance pivots · BUY/HOLD/SELL recommendation |
+| **Row 4** | 8-quarter results tracker · Analyst sentiment donut chart · Notes & insights |
+| **Row 5** | Price move history (1D/2D/5D/7D/1W/1M/2M/6M + CAGR targets) · PE analysis (current vs 5Y/10Y mean + sector + peers + PEG) · Entry/Exit strategy + **chart patterns detected** · **Institutional value analysis** |
+
+### New in This Version
+- **Dark neon design** — dark background with neon green/red accents
+- **Candlestick chart** — OHLC candles with S&R zone overlays, 3 modes (Candle/Line/S&R)
+- **9 chart patterns** auto-detected — VCP, Double Bottom, Cup & Handle, H&S, Bull/Bear Flag, Doji, Hammer, Shooting Star
+- **S&R zones** — detected from swing highs/lows with confluence scoring
+- **PEG ratio** — PE ÷ EPS CAGR, key growth-adjusted valuation metric
+- **Institutional value score** — 0–100 score based on Revenue CAGR, PAT CAGR, ROE, PE vs history, PEG, FCF
+
+---
+
+## CONNECTING FROM DIFFERENT AI PLATFORMS
+
+### Claude (Mobile App or Web)
+Claude can trigger this workflow directly via its tool/API access if given the PAT token. On mobile, Claude can also guide the user to open the GitHub Actions URL and tap Run workflow.
+
+### ChatGPT (with Code Interpreter or Actions)
+Use the API call in Step 1 above inside a ChatGPT Action or function call. Configure:
+- **Action URL:** `https://api.github.com`
+- **Auth:** Bearer token (PAT)
+- **Endpoint:** `/repos/MarketVeda/market-veda-dashboard/actions/workflows/dashboard.yml/dispatches`
+
+### Gemini / Bard
+Use the same API call via Gemini Extensions or function calling.
+
+### Any Custom Chatbot
+POST the API call from your backend server. The PAT token should be stored server-side, never exposed to frontend.
+
+### Simple Mobile Shortcut (no AI needed)
+Create an iOS Shortcut or Android HTTP Request shortcut that POSTs to the GitHub API with your PAT and a symbol input. Opens the dashboard URL in Safari/Chrome immediately after.
+
+---
+
+## QUICK REFERENCE
+
+| Action | URL / Command |
+|---|---|
+| Trigger workflow | `POST /repos/MarketVeda/market-veda-dashboard/actions/workflows/dashboard.yml/dispatches` |
+| Check status | `GET /repos/MarketVeda/market-veda-dashboard/actions/runs?per_page=1` |
+| Dashboard URL | `https://marketveda.github.io/market-veda-dashboard/SYMBOL_YYYY-MM-DD.html` |
+| All dashboards | `https://marketveda.github.io/market-veda-dashboard/` |
+| GitHub repo | `https://github.com/MarketVeda/market-veda-dashboard` |
+| GitHub Actions | `https://github.com/MarketVeda/market-veda-dashboard/actions` |
+
+---
+
+## IMPORTANT NOTES
+
+1. **RSI/MACD/ADX** show N/A until 15+ trading days of EOD data accumulate in nse-market-db. This resolves automatically over time.
+
+2. **Dashboard URL is permanent** — the GitHub Pages URL never expires. You can bookmark and share it.
+
+3. **Each symbol generates a fresh file** named `SYMBOL_YYYY-MM-DD.html`. Running the same symbol twice on the same day overwrites the previous file.
+
+4. **No ZIP file** — the dashboard opens directly in browser via GitHub Pages. No extraction needed.
+
+5. **Logo is embedded** — no secrets or tokens needed at generation time. The MarketVeda logo is baked into `design.py`.
+
+6. **Works offline** — once the HTML is open in your browser, it works fully offline (except the Chart.js CDN for the price chart).
