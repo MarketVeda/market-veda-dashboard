@@ -1,3 +1,4 @@
+# MarketVeda build.py VERSION=FUNDAMENTALS_V3
 #!/usr/bin/env python3
 """
 build.py — MarketVeda Dashboard Orchestrator
