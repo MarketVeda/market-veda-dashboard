@@ -1,3 +1,4 @@
+# MarketVeda design.py VERSION=TEAL_CGPOWER_V3
 """
 design.py — MarketVeda Dashboard
 Palette: white card on dark outer — teal #00C896 accent (CGPOWER reference)
