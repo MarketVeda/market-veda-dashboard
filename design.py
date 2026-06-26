@@ -325,7 +325,7 @@ body{{background:#070B14;font-family:'Segoe UI',system-ui,-apple-system,sans-ser
 .chart-tabs{{display:flex;gap:6px;margin-bottom:6px;}}
 .ctab{{padding:3px 9px;border-radius:4px;border:1px solid #21262D;background:transparent;color:#555;font-size:10px;cursor:pointer;font-weight:700;}}
 .ctab.active,.ctab:hover{{background:#1C2B1E;color:#00E87A;border-color:#00E87A;}}
-#chartWrap{{position:relative;height:160px;}}
+#chartWrap{{position:relative;height:380px;min-height:300px;}}
 /* TECHNICAL SUMMARY */
 .ts-r{{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #161B22;}}
 .ts-r:last-child{{border-bottom:none;}}.ts-l{{font-size:11px;color:#8B949E;}}.ts-v{{font-size:11px;font-weight:700;color:#C9D1D9;}}
@@ -711,134 +711,233 @@ tr:nth-child(even) td{{background:#0A0F16;}}
 
 </div></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
 <script>
 const CD={chart_js};
 const SR={sr_json};
 const LTP={ltp};
 let PC=null,MODE='candle',TF='1Y';
 
+// ── Gradient fill ─────────────────────────────────────────────────────────
 function mkGrad(ctx,ca){{
   const g=ctx.createLinearGradient(0,ca.top,0,ca.bottom);
-  g.addColorStop(0,'rgba(0,232,122,.18)');g.addColorStop(1,'rgba(0,232,122,.01)');return g;
+  g.addColorStop(0,'rgba(0,232,122,.18)');
+  g.addColorStop(1,'rgba(0,232,122,.01)');
+  return g;
 }}
 
-function buildCandleDataset(tf){{
-  const raw=tf==='1Y'?CD.ohlcv:null;
-  if(!raw||!raw.length){{
-    const d=CD[tf]; if(!d) return null;
-    return {{type:'line',label:'{sym}',data:d.p,
-      borderColor:'#00E87A',borderWidth:1.8,pointRadius:0,tension:.4,fill:true,
-      backgroundColor:c=>{{const ca=c.chart.chartArea;if(!ca)return'transparent';return mkGrad(c.chart.ctx,ca);}}}};
+// ── Draw real candlesticks on a custom plugin ─────────────────────────────
+const candlePlugin={{
+  id:'candlePlugin',
+  afterDatasetsDraw(chart,args,opts){{
+    const raw=chart._candleRaw;
+    if(!raw||!raw.length)return;
+    const {{ctx,chartArea:ca,scales:{{x,y}}}}=chart;
+    const n=raw.length;
+    const barW=Math.max(2,Math.min(18,(ca.right-ca.left)/n*0.6));
+    ctx.save();
+    ctx.lineWidth=1;
+    raw.forEach((c,i)=>{{
+      const xp=x.getPixelForValue(i);
+      const yO=y.getPixelForValue(c.o);
+      const yC=y.getPixelForValue(c.c);
+      const yH=y.getPixelForValue(c.h);
+      const yL=y.getPixelForValue(c.l);
+      const bull=c.c>=c.o;
+      const col=bull?'#00E87A':'#FF3B6B';
+      // Wick
+      ctx.strokeStyle=col;
+      ctx.beginPath();ctx.moveTo(xp,yH);ctx.lineTo(xp,yL);ctx.stroke();
+      // Body
+      const bodyTop=Math.min(yO,yC);
+      const bodyH=Math.max(2,Math.abs(yC-yO));
+      ctx.fillStyle=bull?'rgba(0,232,122,0.8)':'rgba(255,59,107,0.8)';
+      ctx.fillRect(xp-barW/2,bodyTop,barW,bodyH);
+      ctx.strokeStyle=col;
+      ctx.strokeRect(xp-barW/2,bodyTop,barW,bodyH);
+    }});
+    ctx.restore();
   }}
-  // Candlestick via bar chart (open-close colored)
-  return {{
-    type:'bar',label:'Price',
-    data:raw.map(c=>c.h-c.l),
-    backgroundColor:raw.map(c=>c.c>=c.o?'rgba(0,232,122,0.7)':'rgba(255,59,107,0.7)'),
-    borderColor:raw.map(c=>c.c>=c.o?'#00E87A':'#FF3B6B'),
-    borderWidth:1,
-  }};
-}}
+}};
+Chart.register(candlePlugin);
 
-function buildAnnotations(ltp,sr,pp){{
+// ── Annotations: LTP line + S&R zones ────────────────────────────────────
+function buildAnnotations(ltp,sr){{
   const anns={{}};
-  // Current price line
-  anns.ltp={{type:'line',yMin:ltp,yMax:ltp,borderColor:'#F59E0B',borderWidth:1.5,
-    borderDash:[4,4],label:{{content:'₹'+ltp.toFixed(1),display:true,
-    backgroundColor:'#F59E0B',color:'#000',font:{{size:9,weight:'bold'}},position:'end'}}}};
-  // Pivot
-  if(pp&&pp.pivot) anns.piv={{type:'line',yMin:pp.pivot,yMax:pp.pivot,
-    borderColor:'#fff',borderWidth:1,borderDash:[2,4]}};
-  // S&R zones
-  sr.slice(0,6).forEach((z,i)=>{{
-    const col=z.type==='resistance'?'rgba(255,59,107,0.3)':'rgba(0,232,122,0.3)';
-    anns['sr'+i]={{type:'line',yMin:z.price,yMax:z.price,
-      borderColor:z.type==='resistance'?'#FF3B6B':'#00E87A',
-      borderWidth:z.type==='resistance'?1.5:1.5,borderDash:[4,2]}};
+  anns.ltp={{type:'line',yMin:ltp,yMax:ltp,
+    borderColor:'#F59E0B',borderWidth:1.5,borderDash:[5,3],
+    label:{{content:'LTP ₹'+ltp.toFixed(1),display:true,
+      backgroundColor:'#F59E0B',color:'#000',
+      font:{{size:10,weight:'bold'}},position:'end',yAdjust:-10}}}};
+  sr.slice(0,8).forEach((z,i)=>{{
+    const isR=z.type==='resistance';
+    anns['sr'+i]={{type:'line',
+      yMin:z.price,yMax:z.price,
+      borderColor:isR?'#FF3B6B':'#00E87A',
+      borderWidth:1.5,borderDash:[6,3],
+      label:{{content:(isR?'R':'S')+' ₹'+z.price.toFixed(0),
+        display:true,backgroundColor:isR?'rgba(255,59,107,0.15)':'rgba(0,232,122,0.15)',
+        color:isR?'#FF3B6B':'#00E87A',font:{{size:9}},position:'start',
+        yAdjust:isR?-10:4}}}};
   }});
   return anns;
 }}
 
+// ── Build datasets ─────────────────────────────────────────────────────────
+function buildDataset(tf,mode){{
+  if(mode==='candle'&&tf==='1Y'&&CD.ohlcv&&CD.ohlcv.length){{
+    // Return invisible scatter just to set labels; real draw via plugin
+    return {{type:'scatter',data:CD.ohlcv.map((c,i)=>({{x:i,y:c.c}})),
+      pointRadius:0,pointHoverRadius:3,
+      pointBackgroundColor:'#00E87A',
+      showLine:false}};
+  }}
+  const d=CD[tf]; if(!d||!d.p||!d.p.length)return null;
+  return {{type:'line',label:'{sym}',data:d.p,
+    borderColor:'#00E87A',borderWidth:2,pointRadius:0,
+    pointHoverRadius:4,tension:.4,fill:true,
+    backgroundColor:c=>{{const ca=c.chart.chartArea;if(!ca)return'transparent';return mkGrad(c.chart.ctx,ca);}}}};
+}}
+
+// ── Init chart ─────────────────────────────────────────────────────────────
 function initChart(){{
-  const ctx=document.getElementById('pc').getContext('2d');
-  const d=CD['1Y'];
-  if(!d||!d.p||!d.p.length)return;
+  const canvas=document.getElementById('pc');
+  const ctx=canvas.getContext('2d');
+  const useCandleDefault=CD.ohlcv&&CD.ohlcv.length>=1;
+  const tf='1Y';
+  const d=useCandleDefault?null:CD[tf];
+  const labels=useCandleDefault?CD.ohlcv.map(c=>c.t):(d?d.l:[]);
+  const ds=buildDataset(tf,MODE);
+  if(!ds)return;
+  if(useCandleDefault) PC=null;// reset
+
   PC=new Chart(ctx,{{
     type:'line',
-    data:{{labels:d.l,datasets:[{{label:'{sym}',data:d.p,
-      borderColor:'#00E87A',borderWidth:1.8,pointRadius:0,tension:.4,fill:true,
-      backgroundColor:c=>{{const ca=c.chart.chartArea;if(!ca)return'transparent';return mkGrad(c.chart.ctx,ca);}}
-    }}]}},
+    data:{{labels,datasets:[ds]}},
     options:{{
       responsive:true,maintainAspectRatio:false,
+      animation:{{duration:300}},
       interaction:{{mode:'index',intersect:false}},
       plugins:{{
         legend:{{display:false}},
-        tooltip:{{backgroundColor:'#0D1117',borderColor:'#00E87A',borderWidth:1,
-          titleColor:'#E5E7EB',bodyColor:'#00E87A',padding:7,displayColors:false,
-          callbacks:{{label:c=>'₹'+c.parsed.y.toFixed(2)}}}},
-        annotation:{{annotations:buildAnnotations(LTP,SR,{json.dumps(pp)})}}
+        tooltip:{{
+          backgroundColor:'#0D1117',borderColor:'#00E87A',borderWidth:1,
+          titleColor:'#E5E7EB',bodyColor:'#00E87A',padding:8,displayColors:false,
+          callbacks:{{
+            title:items=>labels[items[0].dataIndex]||'',
+            label:c=>{{
+              if(CD.ohlcv&&CD.ohlcv.length&&TF==='1Y'&&MODE==='candle'){{
+                const raw=CD.ohlcv[c.dataIndex];
+                if(raw)return[
+                  'O: ₹'+raw.o.toFixed(2),
+                  'H: ₹'+raw.h.toFixed(2),
+                  'L: ₹'+raw.l.toFixed(2),
+                  'C: ₹'+raw.c.toFixed(2),
+                  'Vol: '+raw.v.toLocaleString()];
+              }}
+              return '₹'+c.parsed.y.toFixed(2);
+            }}
+          }}
+        }},
+        annotation:{{annotations:buildAnnotations(LTP,SR)}}
       }},
       scales:{{
-        x:{{grid:{{display:false}},ticks:{{color:'#555',font:{{size:9}},maxTicksLimit:8}}}},
-        y:{{grid:{{color:'rgba(33,38,45,.8)'}},
-          ticks:{{color:'#555',font:{{size:9}},callback:v=>'₹'+v.toFixed(0)}},
-          min:Math.min(...d.p)*.982,max:Math.max(...d.p)*1.01}}
+        x:{{grid:{{display:false}},ticks:{{color:'#6B7280',font:{{size:10}},maxTicksLimit:10}}}},
+        y:{{
+          position:'right',
+          grid:{{color:'rgba(33,38,45,.6)'}},
+          ticks:{{color:'#6B7280',font:{{size:10}},callback:v=>'₹'+v.toLocaleString()}},
+          min:(()=>{{
+            const vals=useCandleDefault?CD.ohlcv.map(c=>c.l):(d?d.p:[]);
+            return vals.length?Math.min(...vals)*0.985:undefined;
+          }})(),
+          max:(()=>{{
+            const vals=useCandleDefault?CD.ohlcv.map(c=>c.h):(d?d.p:[]);
+            return vals.length?Math.max(...vals)*1.01:undefined;
+          }})()
+        }}
       }}
     }}
   }});
+  // Store raw candle data for plugin
+  if(useCandleDefault&&MODE==='candle')PC._candleRaw=CD.ohlcv;
 }}
 
 function setTF(tf,btn){{
-  if(!PC)return;
   TF=tf;
   document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  const d=CD[tf];
-  if(!d||!d.p||!d.p.length)return;
-  PC.data.labels=d.l;
-  PC.data.datasets[0].data=d.p;
-  PC.options.scales.y.min=Math.min(...d.p)*.982;
-  PC.options.scales.y.max=Math.max(...d.p)*1.01;
-  PC.update('active');
+  renderChart();
 }}
 
-function setMode(mode,btn){{
+function setMode(m,btn){{
+  MODE=m;
   document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  MODE=mode;
-  // Re-render with mode (simplified toggle)
-  if(!PC)return;
-  const showSR=(mode==='sr'||mode==='candle');
-  const anns=showSR?buildAnnotations(LTP,SR,{json.dumps(pp)}):{{}};
-  PC.options.plugins.annotation={{annotations:anns}};
-  if(mode==='line'){{
-    PC.data.datasets[0].borderColor='#00E87A';
-    PC.data.datasets[0].borderWidth=1.8;
-  }}else if(mode==='candle'){{
-    PC.data.datasets[0].borderColor='#00E87A';
-    PC.data.datasets[0].borderWidth=2.2;
-  }}else if(mode==='sr'){{
-    PC.data.datasets[0].borderColor='rgba(0,232,122,0.5)';
-    PC.data.datasets[0].borderWidth=1;
-  }}
-  PC.update();
+  renderChart();
 }}
 
-function initDonut(){{
-  new Chart(document.getElementById('dc').getContext('2d'),{{
-    type:'doughnut',
-    data:{{datasets:[{{data:[{sent["bp"]},{sent["hp"]},{sent["sp"]}],
-      backgroundColor:['#00E87A','#555','#FF3B6B'],borderWidth:2,borderColor:'#0D1117'}}]}},
-    options:{{responsive:false,cutout:'62%',plugins:{{legend:{{display:false}},tooltip:{{enabled:false}}}}}}
+function renderChart(){{
+  if(PC){{PC.destroy();PC=null;}}
+  const canvas=document.getElementById('pc');
+  const ctx=canvas.getContext('2d');
+  const useCandleData=MODE==='candle'&&TF==='1Y'&&CD.ohlcv&&CD.ohlcv.length>=1;
+  const labels=useCandleData?CD.ohlcv.map(c=>c.t):(CD[TF]?CD[TF].l:[]);
+  const ds=buildDataset(TF,MODE);
+  if(!ds)return;
+
+  // For SR mode use same data but highlight zones more
+  const annsOverride=buildAnnotations(LTP,SR);
+
+  PC=new Chart(ctx,{{
+    type:'line',
+    data:{{labels,datasets:[ds]}},
+    options:{{
+      responsive:true,maintainAspectRatio:false,
+      animation:{{duration:300}},
+      interaction:{{mode:'index',intersect:false}},
+      plugins:{{
+        legend:{{display:false}},
+        tooltip:{{
+          backgroundColor:'#0D1117',borderColor:'#00E87A',borderWidth:1,
+          titleColor:'#E5E7EB',bodyColor:'#00E87A',padding:8,displayColors:false,
+          callbacks:{{
+            title:items=>labels[items[0].dataIndex]||'',
+            label:c=>{{
+              if(useCandleData){{
+                const raw=CD.ohlcv[c.dataIndex];
+                if(raw)return['O: ₹'+raw.o.toFixed(2),'H: ₹'+raw.h.toFixed(2),
+                  'L: ₹'+raw.l.toFixed(2),'C: ₹'+raw.c.toFixed(2),
+                  'Vol: '+raw.v.toLocaleString()];
+              }}
+              return '₹'+c.parsed.y.toFixed(2);
+            }}
+          }}
+        }},
+        annotation:{{annotations:annsOverride}}
+      }},
+      scales:{{
+        x:{{grid:{{display:false}},ticks:{{color:'#6B7280',font:{{size:10}},maxTicksLimit:10}}}},
+        y:{{
+          position:'right',
+          grid:{{color:'rgba(33,38,45,.6)'}},
+          ticks:{{color:'#6B7280',font:{{size:10}},callback:v=>'₹'+v.toLocaleString()}},
+          min:(()=>{{
+            const vals=useCandleData?CD.ohlcv.map(c=>c.l):(CD[TF]?CD[TF].p:[]);
+            return vals.length?Math.min(...vals)*0.985:undefined;
+          }})(),
+          max:(()=>{{
+            const vals=useCandleData?CD.ohlcv.map(c=>c.h):(CD[TF]?CD[TF].p:[]);
+            return vals.length?Math.max(...vals)*1.015:undefined;
+          }})()
+        }}
+      }}
+    }}
   }});
+  if(useCandleData)PC._candleRaw=CD.ohlcv;
 }}
 
-function dl(){{
-  const b=new Blob([document.documentElement.outerHTML],{{type:'text/html'}});
-  const a=document.createElement('a');a.href=URL.createObjectURL(b);
-  a.download='MarketVeda_{sym}_'+new Date().toISOString().slice(0,10)+'.html';a.click();
-}}
-
-window.addEventListener('load',()=>{{initChart();initDonut();}});
-</script></body></html>"""
+window.addEventListener('load',initChart);
+</script>
+</body></html>"""
