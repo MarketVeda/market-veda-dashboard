@@ -325,7 +325,7 @@ body{{background:#0F0F0F;font-family:'Segoe UI',system-ui,sans-serif;font-size:1
 .r3{{grid-template-columns:1.1fr 1fr .85fr .85fr}}
 .r4{{grid-template-columns:1.6fr .65fr 1.75fr}}
 .r5{{grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:0}}
-.r-chart{{grid-template-columns:1fr;margin-bottom:10px}}
+.r-chart{{grid-template-columns:1.8fr 1fr;margin-bottom:10px}}
 .co-name{{font-size:22px;font-weight:900;color:#00C896;margin-bottom:3px;line-height:1;text-shadow:0 0 12px rgba(0,200,150,.3)}}
 .co-full{{font-size:9px;color:#9CA3AF;margin-bottom:8px}}
 .ov-grid{{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}}
@@ -495,6 +495,7 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     </div>
     <div id="chartWrap"><canvas id="pc"></canvas></div>
   </div>
+  <div></div>
 </div>
 
 <!-- Row 2: MA | Valuation | Volume | Risk -->
