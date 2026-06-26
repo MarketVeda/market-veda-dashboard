@@ -146,7 +146,8 @@ def generate(sym, data, tech, fp, sc, sent, pos, neg, risk_r):
         last=(i==len(qtrs)-1)
         st=' style="background:#005A3C;"' if last else ""
         star="★ " if last else ""
-        qtr_hdr+=f"<th{st}>{star}{q['q']}</th>"
+        _qv=q['q']
+        qtr_hdr+=f"<th{st}>{star}{_qv}</th>"
 
     def qrow(lbl,key,suf=""):
         cells=""
@@ -156,7 +157,10 @@ def generate(sym, data, tech, fp, sc, sent, pos, neg, risk_r):
             cells+=f"<td{st}>{v:,.0f}{suf}</td>" if isinstance(v,(int,float)) else f"<td{st}>N/A</td>"
         return f"<tr><td>{lbl}</td>{cells}</tr>"
 
-    qtr_beat="".join(f'<td class="beat"{"" if i<len(qtrs)-1 else " style=\"background:#0A2A1E;\""}>BEAT</td>' for i in range(len(qtrs)))
+    qtr_beat=""
+    for _bi in range(len(qtrs)):
+        _bst=" style='background:#0A2A1E;'" if _bi==len(qtrs)-1 else ""
+        qtr_beat+="<td class=\"beat\""+_bst+">BEAT</td>"
     qtr_body=qrow("Revenue","rev")+qrow("Net Profit","np")+qrow("EPS (₹)","eps")+qrow("OPM %","opm","%")+f"<tr><td>Result</td>{qtr_beat}</tr>"
 
     # Returns table
@@ -223,11 +227,11 @@ def generate(sym, data, tech, fp, sc, sent, pos, neg, risk_r):
     neg_html="".join(f'<div class="trg">{t}</div>' for t in neg[:4])
 
     # OI rows
-    oi_rows="".join(
-        f'<tr><td>{r["date"][5:]}</td><td style="text-align:right;">{fvol(r["oi"])}</td>'
-        f'<td style="text-align:right;">₹{r["ltp"]:,.1f}</td></tr>'
-        for r in (fno_oi or [])[-5:]
-    ) or '<tr><td colspan="3" style="color:#555;">Non-FnO stock</td></tr>'
+    _oi_parts=[]
+    for r in (fno_oi or [])[-5:]:
+        _rd=r["date"][5:]; _roi=fvol(r["oi"]); _rltp=r["ltp"]
+        _oi_parts.append(f"<tr><td>{_rd}</td><td style='text-align:right;'>{_roi}</td><td style='text-align:right;'>₹{_rltp:,.1f}</td></tr>")
+    oi_rows="".join(_oi_parts) or '<tr><td colspan="3" style="color:#555;">Non-FnO stock</td></tr>' 
 
     # Rec tag
     act=sc["action"]; ac=sc["ac"]
