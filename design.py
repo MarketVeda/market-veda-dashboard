@@ -234,6 +234,63 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     date_str=data.get("date_str","")
     time_str=data.get("time_str","")
 
+
+    # Pre-compute all values used inside f-string (Python 3.11 no quotes in {})
+    mn_pass_col = "#00C896" if mn["pass"] else "#F43F5E"
+    mn_pass_icon = "✅" if mn["pass"] else "❌"
+    mn_stage = mn["stage"]
+    rs_col = "#00C896" if rs>=1 else "#F43F5E"
+    trend_cls = "bull" if chg>=0 else "bear"
+    trend_txt = "Bullish ▲" if chg>=0 else "Bearish ▼"
+    rsi_s = str(rsi_v) if rsi_v else "N/A"
+    adx_s = str(adx_v) if adx_v else "N/A"
+    cci_s = str(cci_v) if cci_v else "N/A"
+    rs_cls = "bull" if rs>=1 else "bear"
+    rs_out = "✅ Outperforming" if rs>=1 else "⚠️ Underperforming"
+    bull_cls = "bull" if bull_n>=3 else "bear"
+    dev20_cls = "bull" if dev20>=0 else "bear"
+    dev200_cls = "bull" if dev200>=0 else "bear"
+    mc_cls = mc
+    sc3_cls = sc3
+    vol_col2 = "#00C896" if vol_pct>=0 else "#F43F5E"
+    vol_dir = "▲" if vol_pct>=0 else "▼"
+    deliv_col = "#00C896" if deliv_pct and deliv_pct>40 else "#9CA3AF"
+    deliv_s = f"{deliv_pct:.1f}%" if deliv_pct else "N/A"
+    atr_s = fv(atr14,pre="₹") if atr14 else "N/A"
+    vwap_s = fv(vwap_v,pre="₹") if vwap_v else "N/A"
+    o_s = f"{ohlc['o']:,.2f}"
+    h_s = f"{ohlc['h']:,.2f}"
+    l_s = f"{ohlc['l']:,.2f}"
+    pc_s = f"{ohlc['pc']:,.2f}"
+    vol_s = fvol(ohlc["vol"])
+    avg20_s = fvol(avg20)
+    peg_col = "#00C896" if va.get("peg") and va["peg"]<1 else "#F59E0B"
+    act_target = ("₹"+f"{sc.get('target'):,.2f}") if sc.get("target") else "N/A"
+    act_sl = ("₹"+f"{sc.get('sl'):,.2f}") if sc.get("sl") else "N/A"
+    act_up = ("+"+str(sc.get("up","N/A"))) if sc.get("up",0)>=0 else str(sc.get("up","N/A"))
+    act_conf = sc.get("conf",0)
+    act_rr = sc.get("rr","N/A")
+    sh_sig_col = sh_sc
+    pp_r3 = pp.get("r3","N/A"); pp_r2 = pp.get("r2","N/A"); pp_r1 = pp.get("r1","N/A")
+    pp_piv = pp.get("pivot","N/A"); pp_s1 = pp.get("s1","N/A")
+    pp_s2 = pp.get("s2","N/A"); pp_s3 = pp.get("s3","N/A")
+    ee_el = f"{ee['el']:,.2f}"; ee_eh = f"{ee['eh']:,.2f}"
+    ee_sl = f"{ee['sl']:,.2f}"; ee_t1 = f"{ee['t1']:,.2f}"
+    ee_t2 = f"{ee['t2']:,.2f}"; ee_t3 = f"{ee['t3']:,.2f}"
+    ee_rr = ee["rr"]
+    bp = sent["bp"]; hp = sent["hp"]; sp2 = sent["sp"]; cons = sent["cons"]
+    cagr_s = f"{cagr1y:+.1f}%" if cagr1y else "N/A"
+    pe5_s = str(pe5)+"x" if pe5 else "N/A"
+    pe10_s = str(pe10)+"x" if pe10 else "N/A"
+    sect_pe_s = str(sect_pe)+"x" if sect_pe else "N/A"
+    cur_pe_s = str(cur_pe)+"x" if cur_pe else "N/A"
+    va_col2 = va_col
+
+
+    mn_n = mn["n"]
+    sh_hist_block = "" if not sh_hist_rows else ("<div style=\"margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px\"><div class=\"sec\">Shareholding History</div><div style=\"overflow-x:auto\"><table><thead><tr><th>Entity</th>" + sh_hist_hdrs + "</tr></thead><tbody>" + sh_hist_rows + "</tbody></table></div></div>")
+    cur_pe_val = cur_pe or 0
+    pb_val = km.get("Price to Book",0) if km else 0
     safe_fn=sym+"_"+date_str.replace(" ","_")+".html"
     return f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -371,9 +428,9 @@ tr:nth-child(even) td{{background:#F4FDFB}}
       <div><div class="ov-l">P/E (TTM)</div><div class="ov-v">{pe_str}</div></div>
       <div><div class="ov-l">Book Value</div><div class="ov-v">{bv_str}</div></div>
       <div><div class="ov-l">ROE</div><div class="ov-v" style="color:#00C896">{roe_str}</div></div>
-      <div><div class="ov-l">RS / Nifty</div><div class="ov-v" style="color:{'#00C896' if rs>=1 else '#F43F5E'}">{rs:.2f}</div></div>
-      <div><div class="ov-l">ATR (14)</div><div class="ov-v">{fv(atr14,pre="₹") if atr14 else "N/A"}</div></div>
-      <div><div class="ov-l">Minervini</div><div class="ov-v" style="color:{'#00C896' if mn['pass'] else '#F43F5E'}">{'✅' if mn['pass'] else '❌'} {mn['stage']}</div></div>
+      <div><div class="ov-l">RS / Nifty</div><div class="ov-v" style="color:{rs_col}">{rs:.2f}</div></div>
+      <div><div class="ov-l">ATR (14)</div><div class="ov-v">{atr_s}</div></div>
+      <div><div class="ov-l">Minervini</div><div class="ov-v" style="color:{mn_pass_col}">{mn_pass_icon} {mn_stage}</div></div>
     </div>
   </div>
   <div class="panel">
@@ -381,28 +438,28 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     <div class="cmp">₹{ltp:,.2f}</div>
     <div style="font-size:13px;font-weight:700;margin-top:3px;color:{cc}">{ca} {abs(chg):.2f} ({abs(chgp):.2f}%)</div>
     <div class="ohlc-g">
-      <div><div class="oh-l">Open</div><div class="oh-v">{ohlc["o"]:,.2f}</div></div>
-      <div><div class="oh-l">High</div><div class="oh-v" style="color:#00C896">{ohlc["h"]:,.2f}</div></div>
-      <div><div class="oh-l">Low</div><div class="oh-v" style="color:#F43F5E">{ohlc["l"]:,.2f}</div></div>
-      <div><div class="oh-l">Prev Close</div><div class="oh-v">{ohlc["pc"]:,.2f}</div></div>
-      <div><div class="oh-l">VWAP</div><div class="oh-v">{fv(vwap_v,pre="₹") if vwap_v else "N/A"}</div></div>
-      <div><div class="oh-l">Vol Today</div><div class="oh-v">{fvol(ohlc["vol"])}</div></div>
-      <div><div class="oh-l">Avg Vol 20D</div><div class="oh-v">{fvol(avg20)}</div></div>
+      <div><div class="oh-l">Open</div><div class="oh-v">{o_s}</div></div>
+      <div><div class="oh-l">High</div><div class="oh-v" style="color:#00C896">{h_s}</div></div>
+      <div><div class="oh-l">Low</div><div class="oh-v" style="color:#F43F5E">{l_s}</div></div>
+      <div><div class="oh-l">Prev Close</div><div class="oh-v">{pc_s}</div></div>
+      <div><div class="oh-l">VWAP</div><div class="oh-v">{vwap_s}</div></div>
+      <div><div class="oh-l">Vol Today</div><div class="oh-v">{vol_s}</div></div>
+      <div><div class="oh-l">Avg Vol 20D</div><div class="oh-v">{avg20_s}</div></div>
       <div><div class="oh-l">P/B</div><div class="oh-v">{pb_str}</div></div>
     </div>
   </div>
   <div class="panel">
     <div class="sec">Technical Summary</div>
-    <div class="ts-r"><span class="ts-l">Trend</span><span class="{'bull' if chg>=0 else 'bear'}">{'Bullish ▲' if chg>=0 else 'Bearish ▼'}</span></div>
-    <div class="ts-r"><span class="ts-l">RSI (14)</span><span class="ts-v">{rsi_v if rsi_v else "N/A"}</span></div>
+    <div class="ts-r"><span class="ts-l">Trend</span><span class="{trend_cls}">{trend_txt}</span></div>
+    <div class="ts-r"><span class="ts-l">RSI (14)</span><span class="ts-v">{rsi_s}</span></div>
     <div class="ts-r"><span class="ts-l">MACD</span><span class="{mc}">{ml}</span></div>
-    <div class="ts-r"><span class="ts-l">ADX (14)</span><span class="ts-v">{adx_v if adx_v else "N/A"}</span></div>
+    <div class="ts-r"><span class="ts-l">ADX (14)</span><span class="ts-v">{adx_s}</span></div>
     <div class="ts-r"><span class="ts-l">Stoch RSI</span><span class="{sc3}">{sl2}</span></div>
-    <div class="ts-r"><span class="ts-l">CCI (20)</span><span class="ts-v">{cci_v if cci_v else "N/A"}</span></div>
-    <div class="ts-r"><span class="ts-l">RS Percentile</span><span class="{'bull' if rs>=1 else 'bear'}">{rsp}/99</span></div>
-    <div class="ts-r"><span class="ts-l">MAs Bullish</span><span class="{'bull' if bull_n>=3 else 'bear'}">{bull_n}/4</span></div>
-    <div class="ts-r"><span class="ts-l">vs SMA20</span><span class="{'bull' if dev20>=0 else 'bear'}">{dev20:+.1f}%</span></div>
-    <div class="ts-r"><span class="ts-l">vs SMA200</span><span class="{'bull' if dev200>=0 else 'bear'}">{dev200:+.1f}%</span></div>
+    <div class="ts-r"><span class="ts-l">CCI (20)</span><span class="ts-v">{cci_s}</span></div>
+    <div class="ts-r"><span class="ts-l">RS Percentile</span><span class="{rs_cls}">{rsp}/99</span></div>
+    <div class="ts-r"><span class="ts-l">MAs Bullish</span><span class="{bull_cls}">{bull_n}/4</span></div>
+    <div class="ts-r"><span class="ts-l">vs SMA20</span><span class="{dev20_cls}">{dev20:+.1f}%</span></div>
+    <div class="ts-r"><span class="ts-l">vs SMA200</span><span class="{dev200_cls}">{dev200:+.1f}%</span></div>
   </div>
 </div>
 
@@ -454,7 +511,7 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     <div class="val-g">
       <div class="val-c"><div class="val-l">P/E (TTM)</div><div class="val-v">{pe_str}</div></div>
       <div class="val-c"><div class="val-l">P/B Ratio</div><div class="val-v">{pb_str}</div></div>
-      <div class="val-c"><div class="val-l">PEG</div><div class="val-v" style="color:{'#00C896' if va.get('peg') and va['peg']<1 else '#F59E0B'}">{peg_s}</div></div>
+      <div class="val-c"><div class="val-l">PEG</div><div class="val-v" style="color:{peg_col}">{peg_s}</div></div>
       <div class="val-c"><div class="val-l">Rev CAGR 5Y</div><div class="val-v" style="color:#00C896">{rev_cagr_s}</div></div>
       <div class="val-c"><div class="val-l">PAT CAGR 5Y</div><div class="val-v" style="color:#00C896">{np_cagr_s}</div></div>
       <div class="val-c"><div class="val-l">ROE</div><div class="val-v">{roe_str}</div></div>
@@ -463,13 +520,13 @@ tr:nth-child(even) td{{background:#F4FDFB}}
   <div class="panel">
     <div class="sec">Volume Analysis</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-      <div><div class="vol-lbl">Avg Vol 20D</div><div class="vol-v">{fvol(avg20)}</div></div>
-      <div><div class="vol-lbl">Today</div><div class="vol-v">{fvol(ohlc["vol"])}</div></div>
+      <div><div class="vol-lbl">Avg Vol 20D</div><div class="vol-v">{avg20_s}</div></div>
+      <div><div class="vol-lbl">Today</div><div class="vol-v">{vol_s}</div></div>
     </div>
     <div style="margin-bottom:5px"><div class="vol-lbl">vs Average</div>
-      <div style="font-size:13px;font-weight:800;color:{vc2}">{'▲' if vol_pct>=0 else '▼'} {abs(vol_pct):.1f}%</div></div>
+      <div style="font-size:13px;font-weight:800;color:{vc2}">{vol_dir} {abs(vol_pct):.1f}%</div></div>
     <div><div class="vol-lbl">Delivery %</div>
-      <div style="font-size:12px;font-weight:700;color:{'#00C896' if deliv_pct and deliv_pct>40 else '#9CA3AF'}">{f"{deliv_pct:.1f}%" if deliv_pct else "N/A"}</div></div>
+      <div style="font-size:12px;font-weight:700;color:{deliv_col}">{deliv_s}</div></div>
   </div>
   <div class="panel"><div class="sec">Risk Analysis</div>{risk_html}</div>
 </div>
@@ -496,27 +553,27 @@ tr:nth-child(even) td{{background:#F4FDFB}}
   </div>
   <div class="panel">
     <div class="sec">S&amp;R · Pivot</div>
-    <div class="sr-r"><span style="color:#9CA3AF">R3</span><span style="font-weight:700;color:#F43F5E">{pp.get("r3","N/A")}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">R2</span><span style="font-weight:700;color:#F43F5E">{pp.get("r2","N/A")}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">R1</span><span style="font-weight:700;color:#F43F5E">{pp.get("r1","N/A")}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">R3</span><span style="font-weight:700;color:#F43F5E">{pp_r3}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">R2</span><span style="font-weight:700;color:#F43F5E">{pp_r2}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">R1</span><span style="font-weight:700;color:#F43F5E">{pp_r1}</span></div>
     <div class="sr-r" style="border-top:2px solid #00C896;border-bottom:2px solid #00C896;margin:3px 0;padding:4px 0">
-      <span style="font-weight:900">PIVOT</span><span style="font-weight:900">{pp.get("pivot","N/A")}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">S1</span><span style="font-weight:700;color:#00C896">{pp.get("s1","N/A")}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">S2</span><span style="font-weight:700;color:#00C896">{pp.get("s2","N/A")}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">S3</span><span style="font-weight:700;color:#00C896">{pp.get("s3","N/A")}</span></div>
+      <span style="font-weight:900">PIVOT</span><span style="font-weight:900">{pp_piv}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S1</span><span style="font-weight:700;color:#00C896">{pp_s1}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S2</span><span style="font-weight:700;color:#00C896">{pp_s2}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S3</span><span style="font-weight:700;color:#00C896">{pp_s3}</span></div>
   </div>
   <div class="panel">
     <div class="sec">Recommendation</div>
     <div style="font-size:42px;font-weight:900;line-height:1;color:{act_col};text-shadow:0 0 15px {act_col}44">{act}</div>
     <div style="margin-top:6px"><div class="vol-lbl">Target (R2)</div>
-      <div style="font-size:17px;font-weight:900;color:#111827">{ ("₹"+f"{sc.get('target'):,.2f}") if sc.get("target") else "N/A"}</div></div>
+      <div style="font-size:17px;font-weight:900;color:#111827">{act_target}</div></div>
     <div style="margin-top:4px"><div class="vol-lbl">Upside</div>
-      <div style="font-size:14px;font-weight:800;color:#00C896">{('+' if sc.get('up',0)>=0 else '') + str(sc.get('up','N/A'))}%</div></div>
+      <div style="font-size:14px;font-weight:800;color:#00C896">{act_up}%</div></div>
     <div style="margin-top:4px">
       <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-        <span class="vol-lbl">Confidence</span><span style="font-size:13px;font-weight:900;color:#00C896">{sc.get('conf',0)}%</span></div>
-      <div class="conf-bar"><div class="conf-fill" style="width:{sc.get('conf',0)}%"></div></div></div>
-    <div style="margin-top:5px;font-size:10px;color:#6B7280">SL: <b style="color:#F43F5E">{ ("₹"+f"{sc.get('sl'):,.2f}") if sc.get("sl") else "N/A"}</b> · R:R <b>1:{sc.get('rr','N/A')}</b></div>
+        <span class="vol-lbl">Confidence</span><span style="font-size:13px;font-weight:900;color:#00C896">{act_conf}%</span></div>
+      <div class="conf-bar"><div class="conf-fill" style="width:{act_conf}%"></div></div></div>
+    <div style="margin-top:5px;font-size:10px;color:#6B7280">SL: <b style="color:#F43F5E">{act_sl}</b> · R:R <b>1:{act_rr}</b></div>
   </div>
 </div>
 
@@ -533,23 +590,23 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     <div style="display:flex;align-items:center;gap:10px">
       <canvas id="dc" width="80" height="80"></canvas>
       <div>
-        <div style="font-size:20px;font-weight:900;color:#00C896">{sent["bp"]}%</div>
-        <div style="font-size:10px;font-weight:700;color:#00C896">{sent["cons"]}</div>
+        <div style="font-size:20px;font-weight:900;color:#00C896">{bp}%</div>
+        <div style="font-size:10px;font-weight:700;color:#00C896">{cons}</div>
         <div class="dl">
-          <div class="dl-r"><div class="dot2" style="background:#00C896"></div><span>BUY {sent["bp"]}%</span></div>
-          <div class="dl-r"><div class="dot2" style="background:#009B77"></div><span>HOLD {sent["hp"]}%</span></div>
-          <div class="dl-r"><div class="dot2" style="background:#F43F5E"></div><span>SELL {sent["sp"]}%</span></div>
+          <div class="dl-r"><div class="dot2" style="background:#00C896"></div><span>BUY {bp}%</span></div>
+          <div class="dl-r"><div class="dot2" style="background:#009B77"></div><span>HOLD {hp}%</span></div>
+          <div class="dl-r"><div class="dot2" style="background:#F43F5E"></div><span>SELL {sp2}%</span></div>
         </div>
       </div>
     </div>
   </div>
   <div class="panel">
     <div class="sec">Notes &amp; Insights</div>
-    <div class="note">Minervini: {mn["stage"]} — {mn["n"]}/6 filters</div>
-    <div class="note">RS vs Nifty50: {rs:.2f} ({rsp} pctl) {'✅ Outperforming' if rs>=1 else '⚠️ Underperforming'}</div>
-    <div class="note">1Y CAGR: {f"{cagr1y:+.1f}%" if cagr1y else "N/A"} (historical reference only)</div>
+    <div class="note">Minervini: {mn_stage} — {mn_n}/6 filters</div>
+    <div class="note">RS vs Nifty50: {rs:.2f} ({rsp} pctl) {rs_out}</div>
+    <div class="note">1Y CAGR: {cagr_s} (historical reference only)</div>
     <div class="note">Targets R1/R2/R3: {t1s} / {t2s} / {t3s}</div>
-    <div class="note">PE: {verdict} — Current {pe_str} vs 5Y mean {str(pe5)+"x" if pe5 else "N/A"}</div>
+    <div class="note">PE: {verdict} — Current {pe_str} vs 5Y mean {pe5_s}</div>
   </div>
 </div>
 
@@ -572,10 +629,10 @@ tr:nth-child(even) td{{background:#F4FDFB}}
       <thead><tr><th>PE Metric</th><th>Value</th></tr></thead>
       <tbody>
         <tr><td>Current P/E</td><td style="text-align:right;font-weight:800;color:{vc3}">{pe_str}</td></tr>
-        <tr><td>5Y Mean PE</td><td style="text-align:right">{str(pe5)+"x" if pe5 else "N/A"}</td></tr>
-        <tr><td>10Y Mean PE</td><td style="text-align:right">{str(pe10)+"x" if pe10 else "N/A"}</td></tr>
-        <tr><td>Sector PE</td><td style="text-align:right">{str(sect_pe)+"x" if sect_pe else "N/A"}</td></tr>
-        <tr><td>PEG Ratio</td><td style="text-align:right;font-weight:700;color:{'#00C896' if va.get('peg') and va['peg']<1 else '#F59E0B'}">{peg_s}</td></tr>
+        <tr><td>5Y Mean PE</td><td style="text-align:right">{pe5_s}</td></tr>
+        <tr><td>10Y Mean PE</td><td style="text-align:right">{pe10_s}</td></tr>
+        <tr><td>Sector PE</td><td style="text-align:right">{sect_pe_s}</td></tr>
+        <tr><td>PEG Ratio</td><td style="text-align:right;font-weight:700;color:{peg_col}">{peg_s}</td></tr>
       </tbody></table>
     <div class="vol-lbl" style="margin-bottom:2px">Peers</div>
     <table><tbody>{peer_rows}</tbody></table>
@@ -583,12 +640,12 @@ tr:nth-child(even) td{{background:#F4FDFB}}
   <div class="panel">
     <div class="sec">Entry / Exit Strategy</div>
     <div class="ee-grid">
-      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">Entry Zone</div><div class="ee-v" style="color:#009B77">₹{ee["el"]:,.2f}–₹{ee["eh"]:,.2f}</div></div>
-      <div class="ee-c" style="background:#FFF0F3;border-color:#FECDD3"><div class="ee-l">Stop Loss</div><div class="ee-v" style="color:#F43F5E">₹{ee["sl"]:,.2f}</div></div>
-      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T1 (R1)</div><div class="ee-v" style="color:#009B77">₹{ee["t1"]:,.2f}</div></div>
-      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T2 (R2)</div><div class="ee-v" style="color:#009B77">₹{ee["t2"]:,.2f}</div></div>
-      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T3 (R3)</div><div class="ee-v" style="color:#009B77">₹{ee["t3"]:,.2f}</div></div>
-      <div class="ee-c" style="background:#FEF9EE;border-color:#FDE68A"><div class="ee-l">R:R</div><div class="ee-v" style="color:#D97706">1:{ee["rr"]}</div></div>
+      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">Entry Zone</div><div class="ee-v" style="color:#009B77">₹{ee_el}–₹{ee_eh}</div></div>
+      <div class="ee-c" style="background:#FFF0F3;border-color:#FECDD3"><div class="ee-l">Stop Loss</div><div class="ee-v" style="color:#F43F5E">₹{ee_sl}</div></div>
+      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T1 (R1)</div><div class="ee-v" style="color:#009B77">₹{ee_t1}</div></div>
+      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T2 (R2)</div><div class="ee-v" style="color:#009B77">₹{ee_t2}</div></div>
+      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T3 (R3)</div><div class="ee-v" style="color:#009B77">₹{ee_t3}</div></div>
+      <div class="ee-c" style="background:#FEF9EE;border-color:#FDE68A"><div class="ee-l">R:R</div><div class="ee-v" style="color:#D97706">1:{ee_rr}</div></div>
     </div>
     <div class="tgt-note">⚠️ Targets = Pivot R1/R2/R3</div>
     <div style="margin-top:8px"><div class="sec">Chart Patterns</div>{pat_html}</div>
@@ -596,16 +653,16 @@ tr:nth-child(even) td{{background:#F4FDFB}}
   <div class="panel">
     <div class="sec">Institutional Value Score</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <div style="font-size:28px;font-weight:900;color:{va_col};text-shadow:0 0 10px {va_col}44">{va_score}</div>
-      <div><div style="font-size:10px;font-weight:800;color:{va_col}">{va_verdict}</div><div style="font-size:9px;color:#9CA3AF;margin-top:1px">/ 100</div></div>
+      <div style="font-size:28px;font-weight:900;color:{va_col2};text-shadow:0 0 10px {va_col2}44">{va_score}</div>
+      <div><div style="font-size:10px;font-weight:800;color:{va_col2}">{va_verdict}</div><div style="font-size:9px;color:#9CA3AF;margin-top:1px">/ 100</div></div>
     </div>
     {va_remarks}
     <div style="margin-top:8px;border-top:1px solid #E5E7EB;padding-top:7px">
       <div class="sec">Shareholding</div>
-      <div style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800;margin-bottom:6px;background:{sh_sc}18;border:1px solid {sh_sc}35;color:{sh_sc}">{sh_signal}</div>
+      <div style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800;margin-bottom:6px;background:{sh_sig_col}18;border:1px solid {sh_sig_col}35;color:{sh_sig_col}">{sh_signal}</div>
       {sh_bars}{sh_remarks}
     </div>
-    {"" if not sh_hist_rows else "<div style=\"margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px\"><div class=\"sec\">Shareholding History</div><div style=\"overflow-x:auto\"><table><thead><tr><th>Entity</th>" + sh_hist_hdrs + "</tr></thead><tbody>" + sh_hist_rows + "</tbody></table></div></div>"}
+    {sh_hist_block}
     <div style="margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px">
       <div class="sec">F&amp;O OI</div>
       <table><thead><tr><th>Date</th><th>OI</th><th>LTP</th></tr></thead><tbody>{oi_rows}</tbody></table>
@@ -618,8 +675,8 @@ tr:nth-child(even) td{{background:#F4FDFB}}
 const FULL={chart_full};
 const SR={sr_json};
 const LTP={ltp};
-const PE_RATIO={str(cur_pe or 0)};
-const PB_RATIO={str(km.get("Price to Book",0) if km else 0)};
+const PE_RATIO={cur_pe_val};
+const PB_RATIO={pb_val};
 
 let PC=null,CHART_TYPE='price',TF='1M';
 const TF_N={{'1M':21,'2M':42,'3M':63,'6M':126,'1Y':252,'2Y':504,'5Y':9999}};
@@ -768,7 +825,7 @@ function setChart(type,btn){{
 
 new Chart(document.getElementById('dc'),{{
   type:'doughnut',
-  data:{{datasets:[{{data:[{sent["bp"]},{sent["hp"]},{sent["sp"]}],
+  data:{{datasets:[{{data:[{bp},{hp},{sp2}],
     backgroundColor:['#00C896','#009B77','#F43F5E'],borderWidth:0}}]}},
   options:{{responsive:false,plugins:{{legend:{{display:false}},tooltip:{{enabled:false}}}}}}
 }});
