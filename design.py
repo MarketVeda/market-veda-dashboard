@@ -156,7 +156,7 @@ def generate(sym, data, tech, fp, sc, sent, pos, neg, risk_r):
             cells+=f"<td{st}>{v:,.0f}{suf}</td>" if isinstance(v,(int,float)) else f"<td{st}>N/A</td>"
         return f"<tr><td>{lbl}</td>{cells}</tr>"
 
-    qtr_beat="".join(f'<td class="beat"{"" if i<len(qtrs)-1 else " style=\"background:#0A2A1E;\""}>BEAT</td>' for i in range(len(qtrs)))
+    _last_style=' style="background:#0A2A1E;"'     qtr_beat="".join(f'<td class="beat"{"" if i<len(qtrs)-1 else _last_style}>BEAT</td>' for i in range(len(qtrs))) for i in range(len(qtrs)))
     qtr_body=qrow("Revenue","rev")+qrow("Net Profit","np")+qrow("EPS (₹)","eps")+qrow("OPM %","opm","%")+f"<tr><td>Result</td>{qtr_beat}</tr>"
 
     # Returns table
