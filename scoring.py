@@ -2,11 +2,31 @@
 scoring.py — News Analysis, Recommendation Engine & Analyst Sentiment
 """
 
+# Symbol → sector map, derived once from the peer lists in financials.SECTOR_PE
+# so a symbol always resolves to a real sector even when financials.json carries
+# no Sector/Industry field. This makes Peer-PE and Sector-PE comparisons work.
+def _build_symbol_sector():
+    try:
+        from financials import SECTOR_PE
+    except Exception:
+        return {}
+    m={}
+    for sector,info in SECTOR_PE.items():
+        if sector=="DEFAULT": continue
+        for peer in (info.get("peers") or {}):
+            m.setdefault(peer.upper(), sector)
+    return m
+
+_SYMBOL_SECTOR=_build_symbol_sector()
+
+
 def get_sector(sym, fin=None):
     if fin:
         km=fin.get("key_metrics") or {}
         s=km.get("Sector") or km.get("sector") or km.get("Industry") or km.get("industry")
         if s: return s.upper().strip()
+    mapped=_SYMBOL_SECTOR.get((sym or "").upper())
+    if mapped: return mapped
     return "DIVERSIFIED"
 
 def get_name(sym, fin=None):
