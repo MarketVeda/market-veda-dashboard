@@ -1,6 +1,8 @@
 """
-financials.py — Fundamentals, PE Analysis & Institutional Value Research
-Computes 5Y/8Q tables, PE vs history, value metrics, institutional-grade analysis.
+financials.py — Fundamentals, PE Analysis, Institutional Value Research
+                + Promoter/DII/FII Shareholding Analysis
+Computes 5Y/8Q tables, PE vs history, value metrics, institutional-grade analysis,
+and shareholding pattern changes (Promoter / DII / FII) as key price drivers.
 """
 
 SECTOR_PE = {
@@ -70,6 +72,143 @@ def extract_quarterly(fin, n=8):
     return result
 
 
+def extract_shareholding(fin, n=8):
+    """
+    Extract Promoter / DII / FII shareholding across last n quarters.
+    Returns list of dicts with quarter and % holdings.
+    Also computes trend (increasing/decreasing/stable) for each category.
+    """
+    sh = fin.get("shareholding") or {}
+    hdrs = sh.get("headers", [])[-n:]
+    rows = sh.get("rows", {})
+
+    result = []
+    for q in hdrs:
+        entry = {"q": q}
+        # Promoter — various field names used
+        prom = (rows.get("Promoters", {}).get(q) or
+                rows.get("Promoter", {}).get(q) or
+                rows.get("Promoter & Promoter Group", {}).get(q))
+        # FII / FPI
+        fii  = (rows.get("FII", {}).get(q) or
+                rows.get("FPIs", {}).get(q) or
+                rows.get("Foreign Institutional Investors", {}).get(q) or
+                rows.get("FII + FPI", {}).get(q))
+        # DII
+        dii  = (rows.get("DII", {}).get(q) or
+                rows.get("Domestic Institutional Investors", {}).get(q) or
+                rows.get("Mutual Funds", {}).get(q))
+        # Retail / Public
+        pub  = (rows.get("Public", {}).get(q) or
+                rows.get("Retail", {}).get(q))
+
+        entry["promoter"] = round(float(prom), 2) if prom else None
+        entry["fii"]      = round(float(fii),  2) if fii  else None
+        entry["dii"]      = round(float(dii),  2) if dii  else None
+        entry["public"]   = round(float(pub),  2) if pub  else None
+        result.append(entry)
+    return result
+
+
+def shareholding_analysis(sh_data):
+    """
+    Institutional-grade shareholding trend analysis.
+    Bullish signals: Promoter not reducing, DII/FII increasing.
+    Returns score impact, trend strings, remarks, and colour codes.
+    """
+    if not sh_data or len(sh_data) < 2:
+        return {
+            "promoter_trend": "N/A", "fii_trend": "N/A", "dii_trend": "N/A",
+            "promoter_color": "#9B9FB0", "fii_color": "#9B9FB0", "dii_color": "#9B9FB0",
+            "promoter_chg": None, "fii_chg": None, "dii_chg": None,
+            "score_impact": 0, "remarks": [], "data": sh_data,
+            "latest": {}, "signal": "NEUTRAL",
+        }
+
+    def trend(vals_raw, label):
+        vals = [v for v in vals_raw if v is not None]
+        if len(vals) < 2:
+            return "N/A", "#9B9FB0", 0, None
+        chg = round(vals[-1] - vals[0], 2)
+        recent_chg = round(vals[-1] - vals[-2], 2)
+        if chg > 0.5:
+            return f"▲ Increasing ({chg:+.2f}%)", "#00E5FF", +8, chg
+        elif chg < -0.5:
+            return f"▼ Decreasing ({chg:+.2f}%)", "#E91E8C", -6, chg
+        else:
+            return f"→ Stable ({chg:+.2f}%)", "#9C27B0", 0, chg
+
+    prom_vals = [d.get("promoter") for d in sh_data]
+    fii_vals  = [d.get("fii")      for d in sh_data]
+    dii_vals  = [d.get("dii")      for d in sh_data]
+
+    pt, pc, ps, pchg = trend(prom_vals, "Promoter")
+    ft, fc, fs, fchg = trend(fii_vals,  "FII")
+    dt, dc, ds, dchg = trend(dii_vals,  "DII")
+
+    score_impact = ps + fs + ds
+    remarks = []
+    latest = sh_data[-1] if sh_data else {}
+
+    # Promoter analysis
+    prom_latest = latest.get("promoter")
+    if prom_latest:
+        if prom_latest >= 60:
+            remarks.append(f"✅ Promoter holding {prom_latest}% — High conviction, strong ownership")
+        elif prom_latest >= 45:
+            remarks.append(f"⚡ Promoter holding {prom_latest}% — Decent promoter confidence")
+        else:
+            remarks.append(f"⚠️ Promoter holding {prom_latest}% — Low promoter stake, watch closely")
+
+    if pchg is not None:
+        if pchg > 1:
+            remarks.append(f"✅ Promoter BUYING — increased {pchg:+.2f}% (last {len(prom_vals)} qtrs) — Bullish signal")
+        elif pchg < -1:
+            remarks.append(f"⚠️ Promoter SELLING — reduced {pchg:+.2f}% — Caution signal")
+        elif abs(pchg) <= 1:
+            remarks.append(f"⚡ Promoter stake stable ({pchg:+.2f}%) — No major change")
+
+    # FII analysis
+    fii_latest = latest.get("fii")
+    if fchg is not None:
+        if fchg > 0.5:
+            remarks.append(f"✅ FII ACCUMULATING — {fchg:+.2f}% increase — Smart money buying")
+        elif fchg < -0.5:
+            remarks.append(f"⚠️ FII REDUCING — {fchg:+.2f}% exit — Foreign outflows signal")
+        else:
+            remarks.append(f"⚡ FII stake stable at {fii_latest or 'N/A'}%")
+
+    # DII analysis
+    dii_latest = latest.get("dii")
+    if dchg is not None:
+        if dchg > 0.5:
+            remarks.append(f"✅ DII BUYING — {dchg:+.2f}% increase — Domestic funds accumulating")
+        elif dchg < -0.5:
+            remarks.append(f"⚠️ DII REDUCING — {dchg:+.2f}% — Domestic institutional exit")
+        else:
+            remarks.append(f"⚡ DII stake stable at {dii_latest or 'N/A'}%")
+
+    # Overall signal
+    pos_signals = sum(1 for x in [pchg, fchg, dchg] if x is not None and x > 0.3)
+    neg_signals = sum(1 for x in [pchg, fchg, dchg] if x is not None and x < -0.3)
+    if pos_signals >= 2:
+        signal = "BULLISH — Institutions accumulating"
+    elif neg_signals >= 2:
+        signal = "BEARISH — Institutions reducing"
+    elif fchg is not None and fchg > 0.5 and (dchg is not None and dchg > 0):
+        signal = "BULLISH — Both FII & DII buying"
+    else:
+        signal = "NEUTRAL — Mixed institutional activity"
+
+    return {
+        "promoter_trend": pt, "fii_trend": ft, "dii_trend": dt,
+        "promoter_color": pc, "fii_color": fc, "dii_color": dc,
+        "promoter_chg": pchg, "fii_chg": fchg, "dii_chg": dchg,
+        "score_impact": score_impact, "remarks": remarks,
+        "data": sh_data, "latest": latest, "signal": signal,
+    }
+
+
 def cagr(vals, years):
     v=[x for x in vals if x and isinstance(x,(int,float)) and x>0]
     if len(v)<2 or years<=0: return None
@@ -85,7 +224,6 @@ def pe_analysis(fin, cur_pe, sector, sym):
          round(sum(pe_hist)/len(pe_hist),1) if pe_hist else None)
     sect_pe, peers = sector_pe_data(sector, sym)
 
-    # Verdict
     if cur_pe and pe5:
         ratio=float(cur_pe)/float(pe5)
         if ratio<0.85:    v,vc,vs="CHEAP ✅","#00C896","Undervalued vs history — potential value buy"
@@ -105,13 +243,6 @@ def pe_analysis(fin, cur_pe, sector, sym):
 
 
 def value_analysis(annual, km, pe_an):
-    """
-    Institutional-grade value analysis:
-    - Revenue + PAT CAGR assessment
-    - Cash flow quality
-    - PE vs PEG
-    - Overall value score
-    """
     if not annual:
         return {"score":0,"verdict":"Insufficient Data","remarks":[]}
 
@@ -126,49 +257,41 @@ def value_analysis(annual, km, pe_an):
 
     cur_pe=pe_an.get("cur_pe"); pe5=pe_an.get("pe5")
 
-    # PEG ratio
     peg=None
     if cur_pe and eps_cagr and eps_cagr>0:
         peg=round(float(cur_pe)/eps_cagr,2)
 
-    remarks=[]
-    score=50  # base
+    remarks=[]; score=50
 
-    # Revenue growth
     if rev_cagr:
         if rev_cagr>=20:   remarks.append(f"✅ Revenue CAGR {rev_cagr}% (5Y) — Exceptional growth"); score+=15
         elif rev_cagr>=12: remarks.append(f"✅ Revenue CAGR {rev_cagr}% (5Y) — Strong growth"); score+=10
         elif rev_cagr>=6:  remarks.append(f"⚡ Revenue CAGR {rev_cagr}% (5Y) — Moderate growth"); score+=3
         else:              remarks.append(f"⚠️ Revenue CAGR {rev_cagr}% (5Y) — Slow growth"); score-=5
 
-    # Profit growth
     if np_cagr:
         if np_cagr>=25:   remarks.append(f"✅ PAT CAGR {np_cagr}% (5Y) — Excellent profit growth"); score+=15
         elif np_cagr>=15: remarks.append(f"✅ PAT CAGR {np_cagr}% (5Y) — Good profit growth"); score+=8
         elif np_cagr>=5:  remarks.append(f"⚡ PAT CAGR {np_cagr}% (5Y) — Moderate profit growth"); score+=2
         else:             remarks.append(f"⚠️ PAT CAGR {np_cagr}% (5Y) — Weak profit growth"); score-=8
 
-    # ROE
     if avg_roe:
         if avg_roe>=20:   remarks.append(f"✅ Avg ROE {avg_roe}% — High-quality business"); score+=10
         elif avg_roe>=15: remarks.append(f"⚡ Avg ROE {avg_roe}% — Decent capital efficiency"); score+=5
         else:             remarks.append(f"⚠️ Avg ROE {avg_roe}% — Below ideal (want >15%)"); score-=3
 
-    # PE vs history
     if cur_pe and pe5:
         ratio=float(cur_pe)/float(pe5)
         if ratio<0.85:   remarks.append(f"✅ PE {cur_pe}x vs 5Y mean {pe5}x — Cheap vs history"); score+=15
         elif ratio<1.10: remarks.append(f"⚡ PE {cur_pe}x vs 5Y mean {pe5}x — Fairly priced"); score+=5
         else:            remarks.append(f"⚠️ PE {cur_pe}x vs 5Y mean {pe5}x — Expensive vs history"); score-=10
 
-    # PEG
     if peg:
         if peg<1:        remarks.append(f"✅ PEG {peg}x (<1) — Growth available at a discount!"); score+=15
         elif peg<1.5:    remarks.append(f"⚡ PEG {peg}x (1–1.5) — Fair growth-adjusted valuation"); score+=5
         elif peg<2.5:    remarks.append(f"⚠️ PEG {peg}x (>1.5) — Paying premium for growth"); score-=5
         else:            remarks.append(f"🔴 PEG {peg}x (>2.5) — Very expensive for growth rate"); score-=15
 
-    # FCF check
     fcfs=[r.get("fcf") for r in annual if r.get("fcf") and isinstance(r.get("fcf"),(int,float)) and r["fcf"]>0]
     if len(fcfs)>=3:
         remarks.append(f"✅ Positive FCF in {len(fcfs)}/{len(annual)} years — Self-funding growth"); score+=8
@@ -186,21 +309,40 @@ def value_analysis(annual, km, pe_an):
     return {
         "score":score,"verdict":verdict,"remarks":remarks,
         "rev_cagr":rev_cagr,"np_cagr":np_cagr,"eps_cagr":eps_cagr,
-        "avg_roe":avg_roe,"peg":peg,
-        "years":yrs,
+        "avg_roe":avg_roe,"peg":peg,"years":yrs,
     }
 
 
 def process(fin, sym, sector):
     if not fin:
-        return {"annual":[],"qtrs":[],"pe":{},
-                "km":{},"value":{"score":0,"verdict":"No data","remarks":[]}}
+        return {
+            "annual":[],"qtrs":[],"pe":{},"km":{},
+            "value":{"score":0,"verdict":"No data","remarks":[]},
+            "shareholding":[],"sh_analysis":{
+                "promoter_trend":"N/A","fii_trend":"N/A","dii_trend":"N/A",
+                "promoter_color":"#9B9FB0","fii_color":"#9B9FB0","dii_color":"#9B9FB0",
+                "promoter_chg":None,"fii_chg":None,"dii_chg":None,
+                "score_impact":0,"remarks":[],"data":[],"latest":{},"signal":"N/A",
+            }
+        }
     km=fin.get("key_metrics") or {}
     cur_pe=km.get("P/E") or km.get("P/E Ratio") or km.get("Price to Earning")
     annual=extract_annual(fin)
     qtrs=extract_quarterly(fin)
     pe=pe_analysis(fin,cur_pe,sector,sym)
     va=value_analysis(annual,km,pe)
+    sh_data=extract_shareholding(fin)
+    sh_analysis=shareholding_analysis(sh_data)
+
+    # Incorporate shareholding score into value score
+    combined_score = min(100, max(0, va["score"] + sh_analysis["score_impact"]))
+    va["score"] = combined_score
+    if combined_score >= 80:    va["verdict"] = "STRONG BUY 💚 (Institutional Grade)"
+    elif combined_score >= 65:  va["verdict"] = "BUY 🟢 (Attractive Valuation)"
+    elif combined_score >= 50:  va["verdict"] = "HOLD 🟡 (Fair Value)"
+    elif combined_score >= 35:  va["verdict"] = "REDUCE 🟠 (Expensive)"
+    else:                       va["verdict"] = "AVOID 🔴 (Overvalued / Deteriorating)"
+
     yrs=len(annual)-1 if len(annual)>1 else 1
     revs=[r["rev"] for r in annual if r.get("rev")]
     nps =[r["np"]  for r in annual if r.get("np")]
@@ -209,4 +351,6 @@ def process(fin, sym, sector):
         "value":va,
         "rev_cagr":cagr(revs,yrs),"np_cagr":cagr(nps,yrs),
         "sector":sector,
+        "shareholding":sh_data,
+        "sh_analysis":sh_analysis,
     }
