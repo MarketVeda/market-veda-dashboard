@@ -1,11 +1,12 @@
-name: dashboard
+name: MarketVeda Dashboard
 
 on:
   workflow_dispatch:
     inputs:
       symbol:
-        description: 'NSE Symbol  e.g. CGPOWER  RELIANCE  HDFCBANK  TITAN'
+        description: 'NSE Symbol (e.g. CGPOWER)'
         required: true
+        default: 'CGPOWER'
 
 jobs:
   build:
@@ -20,7 +21,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - run: pip install requests --quiet
+      - name: Run pip install requests --quiet
+        run: pip install requests --quiet
 
       - name: Generate dashboard
         run: |
@@ -31,14 +33,13 @@ jobs:
 
       - name: Publish to GitHub Pages
         run: |
+          FNAME="${{ github.event.inputs.symbol }}_${DATE}.html"
           git config user.name "MarketVeda Bot"
           git config user.email "bot@marketveda.in"
           git fetch origin gh-pages 2>/dev/null || true
           git checkout gh-pages 2>/dev/null || git checkout --orphan gh-pages
           git rm -rf . --quiet 2>/dev/null || true
-          FNAME="${{ github.event.inputs.symbol }}_${{ env.DATE }}.html"
-          git checkout ${{ github.sha }} -- "$FNAME" 2>/dev/null || \
-            cp "/home/runner/work/market-veda-dashboard/market-veda-dashboard/$FNAME" .
+          cp "/home/runner/work/market-veda-dashboard/market-veda-dashboard/$FNAME" . 2>/dev/null || true
           python3 -c "
           import os,glob
           files=sorted(glob.glob('*.html'),reverse=True)
@@ -50,24 +51,15 @@ jobs:
           h1{{color:#00E87A;margin-bottom:20px}}table{{border-collapse:collapse;width:100%}}
           td{{padding:10px;border-bottom:1px solid #161B22}}a{{color:#00E87A;text-decoration:none}}
           a:hover{{text-decoration:underline}}</style></head>
-          <body><h1>📊 MarketVeda Dashboards</h1>
+          <body><h1>MarketVeda Dashboards</h1>
           <p style=\"color:#555;margin-bottom:20px\">Click any dashboard to open directly in browser</p>
           <table>{rows}</table></body></html>'''
           open('index.html','w').write(html)
           "
           git add *.html
-          git commit -m "Dashboard: ${{ env.FNAME }}" || echo "Nothing to commit"
+          git commit -m "Dashboard: $FNAME" || echo "Nothing to commit"
           git push origin gh-pages --force
 
       - name: Summary
         run: |
-          URL="https://marketveda.github.io/market-veda-dashboard/${{ env.FNAME }}"
-          INDEX="https://marketveda.github.io/market-veda-dashboard/"
-          echo "## ✅ MarketVeda Dashboard Ready" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Symbol:** ${{ github.event.inputs.symbol }} | **Date:** ${{ env.DATE }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔗 Open Dashboard Directly" >> $GITHUB_STEP_SUMMARY
-          echo "[$URL]($URL)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📋 **All dashboards:** [$INDEX]($INDEX)" >> $GITHUB_STEP_SUMMARY
+          echo "Dashboard: https://marketveda.github.io/market-veda-dashboard/${{ github.event.inputs.symbol }}_${DATE}.html"
