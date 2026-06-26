@@ -1,3 +1,4 @@
+# MarketVeda indicators.py VERSION=PREV_CLOSE_1D_V3
 """
 indicators.py — Technical Indicators + Chart Pattern Detection
 All computed from raw OHLCV. No external TA library needed.
