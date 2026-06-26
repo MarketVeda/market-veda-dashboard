@@ -23,6 +23,20 @@ def fvol(v):
     if v>=1000: return f"{v/1000:.1f}K"
     return str(v)
 
+# ── Table spare-capacity helpers ──────────────────────────────────────────────
+# Tables are kept flexible (each wrapped in its own scrollable .tbl box) and grow
+# on their own when a row/period is added, so no visible placeholder cells are
+# drawn. These hooks are retained as no-ops in case reserved slots are wanted
+# again later — return a "·"/"+" cell string to re-enable them.
+def spare_cols_th(n):
+    return ""
+
+def spare_cols_td(n):
+    return ""
+
+def spare_rows(ncols, count=2):
+    return ""
+
 def _sh_bar(label,pct,col,chg):
     if pct is None:
         return "<div class=\"sh-row\"><span class=\"sh-lbl\">" + label + "</span><span style=\"color:#9CA3AF\">N/A</span></div>"
@@ -33,7 +47,7 @@ def _sh_bar(label,pct,col,chg):
         cc="#00C896" if chg>0 else ("#F43F5E" if chg<0 else "#9CA3AF")
         cd="<span style=\"color:" + cc + ";font-size:9px;margin-left:3px\">" + a + str(abs(round(chg,2))) + "%</span>"
     bar = "<div class=\"sh-track\"><div class=\"sh-fill\" style=\"width:" + str(w) + "%;background:" + col + "\"></div></div>"
-    meta = "<div class=\"sh-meta\"><span class=\"sh-lbl\">" + label + "</span><span style=\"font-weight:800;color:" + col + ";font-size:11px\">" + str(round(pct,1)) + "%" + cd + "</span></div>"
+    meta = "<div class=\"sh-meta\"><span class=\"sh-lbl\">" + label + "</span><span style=\"font-weight:800;color:" + col + ";font-size:11px\">" + f"{pct:.2f}" + "%" + cd + "</span></div>"
     return "<div class=\"sh-row\">" + meta + bar + "</div>"
 
 def build_chart(eod):
@@ -79,13 +93,14 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
         sv2="N/A" if not sv else f"{sv:.2f}"
         ev2="N/A" if not ev else f"{ev:.2f}"
         ma_rows+="<tr><td>MA " + str(n2) + "</td><td>" + sv2 + "</td><td>" + ev2 + "</td><td class=\"" + cls + "\">" + sig + "</td></tr>"
+    ma_rows+=spare_rows(4, 2)  # room for additional MA periods
     bull_n=sum(1 for n2 in [20,50,100,200] if ma.get(n2,{}).get("sig")=="Bullish")
     sma20=ma.get(20,{}).get("sma") or ltp
     sma200=ma.get(200,{}).get("sma") or ltp
-    dev20=round((ltp-sma20)/sma20*100,1) if sma20 else 0
-    dev200=round((ltp-sma200)/sma200*100,1) if sma200 else 0
+    dev20=round((ltp-sma20)/sma20*100,2) if sma20 else 0
+    dev200=round((ltp-sma200)/sma200*100,2) if sma200 else 0
 
-    vol_today=ohlc["vol"]; vol_pct=round((vol_today-avg20)/avg20*100,1) if avg20 else 0
+    vol_today=ohlc["vol"]; vol_pct=round((vol_today-avg20)/avg20*100,2) if avg20 else 0
     vc2="#00C896" if vol_pct>=0 else "#F43F5E"
 
     mh=macd_v[2] if macd_v else None
@@ -93,48 +108,100 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     mc="bull" if mh and mh>0 else "bear"
 
     sk=srsi[0] if srsi else None
-    sl2=(f"{sk:.1f}" + ("⚠" if sk and sk>80 else "")) if sk else "N/A"
+    sl2=(f"{sk:.2f}" + ("⚠" if sk and sk>80 else "")) if sk else "N/A"
     sc3="bull" if sk and sk<30 else ("bear" if sk and sk>80 else "ts-v")
     rsp=min(99,max(1,int(rs*50)))
 
-    # Annual table
-    ann_hdr="".join("<th>" + str(r.get("yr","")) + "</th>" for r in annual)
-    def arow(lbl,key,suf=""):
+    # Annual table — pad to a stable width and keep 1 spare column for a future period
+    ANN_MIN_COLS=5
+    ann_pad=max(0, ANN_MIN_COLS-len(annual))+1
+    ann_hdr=("".join("<th>" + str(r.get("yr","")) + "</th>" for r in annual)
+             + spare_cols_th(ann_pad))
+    def arow(lbl,key,suf="",dec=0):
         cells=""
         for i,r in enumerate(annual):
             v=r.get(key); last=(i==len(annual)-1)
             st=" style=\"background:#E6FAF5;font-weight:800;color:#009B77\"" if last else ""
             if isinstance(v,(int,float)):
-                cells+="<td" + st + ">" + f"{v:,.0f}" + suf + "</td>"
+                cells+="<td" + st + ">" + f"{v:,.{dec}f}" + suf + "</td>"
             else:
                 cells+="<td" + st + ">N/A</td>"
+        cells+=spare_cols_td(ann_pad)
         return "<tr><td>" + lbl + "</td>" + cells + "</tr>"
-    ann_body=(arow("Revenue (₹Cr)","rev")+arow("Op.Profit","op")+
-              arow("OPM %","opm","%")+arow("Net Profit","np")+
-              arow("EPS (₹)","eps")+arow("ROE %","roe","%"))
+    def arow_growth(lbl,key,items,pad):
+        cells=""
+        for i,r in enumerate(items):
+            v=r.get(key); pv=items[i-1].get(key) if i>0 else None
+            last=(i==len(items)-1); bg="background:#E6FAF5;" if last else ""
+            if isinstance(v,(int,float)) and isinstance(pv,(int,float)) and pv:
+                g=(v-pv)/pv*100; col="#00C896" if g>=0 else "#F43F5E"
+                cells+="<td style=\"" + bg + "font-weight:800;color:" + col + "\">" + f"{g:+.2f}%" + "</td>"
+            else:
+                cells+="<td style=\"" + bg + "color:#9CA3AF\">—</td>"
+        cells+=spare_cols_td(pad)
+        return "<tr><td>" + lbl + "</td>" + cells + "</tr>"
+    ann_cols=1+len(annual)+ann_pad
+    ann_body=(arow("Revenue (₹Cr)","rev")+arow_growth("Rev Growth % (YoY)","rev",annual,ann_pad)+
+              arow("Op.Profit","op")+arow("OPM %","opm","%",dec=2)+arow("Net Profit","np")+
+              arow("EPS (₹)","eps",dec=2)+arow("ROE %","roe","%",dec=2)+
+              spare_rows(ann_cols, 2))
 
-    # Quarterly table
+    # Quarterly table — keep 1 spare column for the next quarter
+    QTR_MIN_COLS=8
+    qtr_pad=max(0, QTR_MIN_COLS-len(qtrs))+1
     qtr_hdr=""
     for i,q in enumerate(qtrs):
         st=" style=\"background:#007A5E\"" if i==len(qtrs)-1 else ""
         qtr_hdr+="<th" + st + ">" + q.get("q","") + "</th>"
+    qtr_hdr+=spare_cols_th(qtr_pad)
 
-    def qrow(lbl,key,suf=""):
+    def qrow(lbl,key,suf="",dec=0):
         cells=""
         for i,q in enumerate(qtrs):
             v=q.get(key); last=(i==len(qtrs)-1)
             st=" style=\"background:#E6FAF5;font-weight:800;color:#009B77\"" if last else ""
             if isinstance(v,(int,float)):
-                cells+="<td" + st + ">" + f"{v:,.0f}" + suf + "</td>"
+                cells+="<td" + st + ">" + f"{v:,.{dec}f}" + suf + "</td>"
             else:
                 cells+="<td" + st + ">N/A</td>"
+        cells+=spare_cols_td(qtr_pad)
         return "<tr><td>" + lbl + "</td>" + cells + "</tr>"
+
+    # Result = YoY Net-Profit comparison (vs same quarter last year, fallback QoQ)
+    def qtr_result(i):
+        npi=qtrs[i].get("np")
+        if not isinstance(npi,(int,float)): return ("—","#9CA3AF")
+        ref=None
+        if i>=4 and isinstance(qtrs[i-4].get("np"),(int,float)): ref=qtrs[i-4]["np"]
+        elif i>=1 and isinstance(qtrs[i-1].get("np"),(int,float)): ref=qtrs[i-1]["np"]
+        if ref is None: return ("—","#9CA3AF")
+        return ("BEAT","#00C896") if npi>=ref else ("MISS","#F43F5E")
 
     qtr_beat=""
     for i in range(len(qtrs)):
-        st=" style=\"background:#E6FAF5\"" if i==len(qtrs)-1 else ""
-        qtr_beat+="<td class=\"beat\"" + st + ">BEAT</td>"
-    qtr_body=qrow("Revenue","rev")+qrow("Net Profit","np")+qrow("EPS (₹)","eps")+qrow("OPM %","opm","%")+"<tr><td>Result</td>" + qtr_beat + "</tr>"
+        txt,col=qtr_result(i)
+        bg="background:#E6FAF5;" if i==len(qtrs)-1 else ""
+        qtr_beat+="<td style=\"" + bg + "text-align:right;font-weight:800;color:" + col + "\">" + txt + "</td>"
+    qtr_beat+=spare_cols_td(qtr_pad)
+    def qrow_growth(lbl,key):
+        cells=""
+        for i,q in enumerate(qtrs):
+            v=q.get(key); ref=None
+            if i>=4 and isinstance(qtrs[i-4].get(key),(int,float)): ref=qtrs[i-4][key]
+            elif i>=1 and isinstance(qtrs[i-1].get(key),(int,float)): ref=qtrs[i-1][key]
+            last=(i==len(qtrs)-1); bg="background:#E6FAF5;" if last else ""
+            if isinstance(v,(int,float)) and isinstance(ref,(int,float)) and ref:
+                g=(v-ref)/ref*100; col="#00C896" if g>=0 else "#F43F5E"
+                cells+="<td style=\"" + bg + "font-weight:800;color:" + col + "\">" + f"{g:+.2f}%" + "</td>"
+            else:
+                cells+="<td style=\"" + bg + "color:#9CA3AF\">—</td>"
+        cells+=spare_cols_td(qtr_pad)
+        return "<tr><td>" + lbl + "</td>" + cells + "</tr>"
+    qtr_cols=1+len(qtrs)+qtr_pad
+    qtr_body=(qrow("Revenue","rev")+qrow_growth("Rev Growth % (YoY)","rev")+
+              qrow("Net Profit","np")+qrow("EPS (₹)","eps",dec=2)+
+              qrow("OPM %","opm","%",dec=2)+"<tr><td>Result</td>" + qtr_beat + "</tr>"+
+              spare_rows(qtr_cols, 2))
 
     # Returns table
     ret_rows=""
@@ -156,9 +223,10 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     for p,peval in list(pe_an.get("peers",{}).items())[:5]:
         if peval:
             col2="#F43F5E" if cur_pe and float(cur_pe)>float(peval)*1.2 else "#00C896"
-            peer_rows+="<tr><td>" + p + "</td><td style=\"text-align:right;font-weight:700;color:" + col2 + "\">" + f"{peval:.1f}x" + "</td></tr>"
+            peer_rows+="<tr><td>" + p + "</td><td style=\"text-align:right;font-weight:700;color:" + col2 + "\">" + f"{peval:.2f}x" + "</td></tr>"
     if not peer_rows:
         peer_rows="<tr><td colspan=\"2\" style=\"color:#9CA3AF\">N/A</td></tr>"
+    peer_rows+=spare_rows(2,2)  # room for more peers
 
     va_score=va.get("score",0); va_verdict=va.get("verdict","N/A")
     va_col="#00C896" if va_score>=65 else ("#F59E0B" if va_score>=50 else "#F43F5E")
@@ -173,13 +241,16 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     sh_sc="#00C896" if "BULL" in sh_signal else ("#F43F5E" if "BEAR" in sh_signal else "#F59E0B")
     sh_remarks="".join("<div class=\"va-rem\">" + r + "</div>" for r in sha.get("remarks",[])[:4])
 
-    sh_hist_hdrs="".join("<th>" + d.get("q","") + "</th>" for d in sh_data[-6:])
+    sh_hist_n=sh_data[-6:]
+    sh_hist_hdrs=("".join("<th>" + d.get("q","") + "</th>" for d in sh_hist_n)
+                  + spare_cols_th(1))
     sh_hist_rows=""
     for key,lbl in [("promoter","Promoter"),("fii","FII"),("dii","DII"),("public","Public")]:
         cells=""
-        for d in sh_data[-6:]:
+        for d in sh_hist_n:
             v=d.get(key)
-            cells+="<td>" + f"{v:.1f}%" + "</td>" if v else "<td>—</td>"
+            cells+="<td>" + f"{v:.2f}%" + "</td>" if v else "<td>—</td>"
+        cells+=spare_cols_td(1)
         sh_hist_rows+="<tr><td>" + lbl + "</td>" + cells + "</tr>"
 
     pat_html=""
@@ -208,7 +279,7 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     oi_rows=""
     for r in (fno_oi or [])[-5:]:
         oi_rows+=("<tr><td>" + r["date"][5:] + "</td><td style=\"text-align:right\">" +
-                  fvol(r["oi"]) + "</td><td style=\"text-align:right\">₹" + f"{r['ltp']:,.1f}" + "</td></tr>")
+                  fvol(r["oi"]) + "</td><td style=\"text-align:right\">₹" + f"{r['ltp']:,.2f}" + "</td></tr>")
     if not oi_rows:
         oi_rows="<tr><td colspan=\"3\" style=\"color:#9CA3AF\">Non-FnO</td></tr>"
 
@@ -220,14 +291,20 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     cagr1y=ret.get("cagr1y")
 
     mktcap=km.get("Market Cap") if km else None
-    pe_str=(str(km.get("P/E","N/A"))+"x") if km and km.get("P/E") else "N/A"
-    roe_str=(str(km.get("ROE %","N/A"))+"%") if km and km.get("ROE %") else "N/A"
+    def _num2(x, suf="", pre=""):
+        try: return f"{pre}{float(x):.2f}{suf}"
+        except: return f"{pre}{x}{suf}"
+    pe_actual=(km.get("Stock P/E") or km.get("P/E")) if km else None
+    pe_str=_num2(pe_actual,"x") if pe_actual else "N/A"
+    roe_val=(km.get("ROE %") or km.get("ROE") or km.get("ROE%")) if km else None
+    roe_str=_num2(roe_val,"%") if roe_val else "N/A"
     bv_str=fv(km.get("Book Value"),pre="₹") if km and km.get("Book Value") else "N/A"
-    pb_str=(str(km.get("Price to Book","N/A"))+"x") if km and km.get("Price to Book") else "N/A"
+    pb_str=_num2(km.get("Price to Book"),"x") if km and km.get("Price to Book") else "N/A"
     mktcap_str=fv(mktcap,pre="₹",suf=" Cr") if mktcap else "N/A"
-    rev_cagr_s=(str(fp.get("rev_cagr","N/A"))+"%") if fp.get("rev_cagr") else "N/A"
-    np_cagr_s=(str(fp.get("np_cagr","N/A"))+"%") if fp.get("np_cagr") else "N/A"
-    peg_s=(str(va.get("peg","N/A"))+"x") if va.get("peg") else "N/A"
+    rev_cagr_s=(f"{fp.get('rev_cagr'):.2f}%") if fp.get("rev_cagr") else "N/A"
+    np_cagr_s=(f"{fp.get('np_cagr'):.2f}%") if fp.get("np_cagr") else "N/A"
+    peg_s=(f"{va.get('peg'):.2f}x") if va.get("peg") else "N/A"
+    eps_cagr_s=(f"{va.get('eps_cagr'):.2f}%") if va.get("eps_cagr") else "N/A"
     h52_s="₹"+str(h52) if h52 else "N/A"
     l52_s="₹"+str(l52) if l52 else "N/A"
 
@@ -243,6 +320,11 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     trend_cls = "bull" if chg>=0 else "bear"
     trend_txt = "Bullish ▲" if chg>=0 else "Bearish ▼"
     rsi_s = str(rsi_v) if rsi_v else "N/A"
+    rsi_w_v = tech.get("rsi_w"); rsi_m_v = tech.get("rsi_m")
+    rsi_w_s = str(rsi_w_v) if rsi_w_v else "N/A"
+    rsi_m_s = str(rsi_m_v) if rsi_m_v else "N/A"
+    def _rsi_cls(v): return "bull" if (v and v>=60) else ("bear" if (v and v<=40) else "ts-v")
+    rsi_w_cls = _rsi_cls(rsi_w_v); rsi_m_cls = _rsi_cls(rsi_m_v)
     adx_s = str(adx_v) if adx_v else "N/A"
     cci_s = str(cci_v) if cci_v else "N/A"
     rs_cls = "bull" if rs>=1 else "bear"
@@ -255,7 +337,7 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     vol_col2 = "#00C896" if vol_pct>=0 else "#F43F5E"
     vol_dir = "▲" if vol_pct>=0 else "▼"
     deliv_col = "#00C896" if deliv_pct and deliv_pct>40 else "#9CA3AF"
-    deliv_s = f"{deliv_pct:.1f}%" if deliv_pct else "N/A"
+    deliv_s = f"{deliv_pct:.2f}%" if deliv_pct else "N/A"
     atr_s = fv(atr14,pre="₹") if atr14 else "N/A"
     vwap_s = fv(vwap_v,pre="₹") if vwap_v else "N/A"
     o_s = f"{ohlc['o']:,.2f}"
@@ -279,18 +361,23 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
     ee_t2 = f"{ee['t2']:,.2f}"; ee_t3 = f"{ee['t3']:,.2f}"
     ee_rr = ee["rr"]
     bp = sent["bp"]; hp = sent["hp"]; sp2 = sent["sp"]; cons = sent["cons"]
-    cagr_s = f"{cagr1y:+.1f}%" if cagr1y else "N/A"
-    pe5_s = str(pe5)+"x" if pe5 else "N/A"
-    pe10_s = str(pe10)+"x" if pe10 else "N/A"
-    sect_pe_s = str(sect_pe)+"x" if sect_pe else "N/A"
-    cur_pe_s = str(cur_pe)+"x" if cur_pe else "N/A"
+    cagr_s = f"{cagr1y:+.2f}%" if cagr1y else "N/A"
+    pe5_s = _num2(pe5,"x") if pe5 else "N/A"
+    pe10_s = _num2(pe10,"x") if pe10 else "N/A"
+    sect_pe_s = _num2(sect_pe,"x") if sect_pe else "N/A"
+    cur_pe_s = _num2(cur_pe,"x") if cur_pe else "N/A"
     va_col2 = va_col
 
 
     mn_n = mn["n"]
-    sh_hist_block = "" if not sh_hist_rows else ("<div style=\"margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px\"><div class=\"sec\">Shareholding History</div><div style=\"overflow-x:auto\"><table><thead><tr><th>Entity</th>" + sh_hist_hdrs + "</tr></thead><tbody>" + sh_hist_rows + "</tbody></table></div></div>")
+    # Standalone Shareholding-History table (its own panel now)
+    sh_hist_table = ("<div class=\"tbl\"><table><thead><tr><th>Entity</th>" + sh_hist_hdrs +
+                     "</tr></thead><tbody>" + sh_hist_rows + "</tbody></table></div>") if sh_hist_n else \
+                    "<div style=\"color:#9CA3AF;font-size:10px;padding:6px 0\">No shareholding history available</div>"
     cur_pe_val = cur_pe or 0
     pb_val = km.get("Price to Book",0) if km else 0
+    ph_spare=spare_rows(2,2)   # spare rows under the price-history table
+    oi_spare=spare_rows(3,2)   # spare rows under the F&O OI table
     safe_fn=sym+"_"+date_str.replace(" ","_")+".html"
     return f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -320,12 +407,14 @@ body{{background:#0F0F0F;font-family:'Segoe UI',system-ui,sans-serif;font-size:1
 .panel{{background:#fff;border-radius:8px;border:1px solid #E5E7EB;padding:10px 12px;box-shadow:0 1px 4px rgba(0,200,150,.06)}}
 .panel:hover{{border-color:#00C896;box-shadow:0 0 12px rgba(0,200,150,.15);transition:.3s}}
 .row{{display:grid;gap:10px;margin-bottom:10px}}
-.r1{{grid-template-columns:.7fr .65fr .7fr .95fr}}
-.r2{{grid-template-columns:1.5fr 1fr 1fr}}
-.r3{{grid-template-columns:1.6fr 1fr 1fr}}
-.r4{{grid-template-columns:1fr 1fr 1fr 1fr}}
-.r5{{display:none}}
+.r1{{grid-template-columns:repeat(5,1fr)}}
+.r-ind{{grid-template-columns:1fr 1fr 1.2fr 1fr}}
+.r-tbl1{{grid-template-columns:1.7fr 1fr 1fr}}
+.r-tbl2{{grid-template-columns:2fr 1.15fr}}
+.r-tbl3{{grid-template-columns:1.5fr 1fr 1fr}}
+.r-tbl4{{grid-template-columns:1.4fr 1.1fr 1fr}}
 .r-chart{{grid-template-columns:1.85fr 1fr;margin-bottom:10px}}
+.r-sig{{grid-template-columns:1fr 1fr 1.5fr}}
 .co-name{{font-size:22px;font-weight:900;color:#00C896;margin-bottom:3px;line-height:1;text-shadow:0 0 12px rgba(0,200,150,.3)}}
 .co-full{{font-size:9px;color:#9CA3AF;margin-bottom:8px}}
 .ov-grid{{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}}
@@ -349,13 +438,19 @@ body{{background:#0F0F0F;font-family:'Segoe UI',system-ui,sans-serif;font-size:1
 .ts-v{{font-size:11px;font-weight:700;color:#111827}}
 .bull{{color:#00C896;font-weight:800}}
 .bear{{color:#F43F5E;font-weight:800}}
-table{{width:100%;border-collapse:collapse;font-size:10px}}
-th{{font-size:9px;color:#fff;background:#009B77;letter-spacing:.8px;text-transform:uppercase;text-align:left;padding:4px 5px;white-space:nowrap}}
+.tbl{{border:1px solid #E5E7EB;border-radius:7px;overflow:hidden;overflow-x:auto;margin-top:2px}}
+.tbl+.tbl{{margin-top:7px}}
+table{{width:100%;border-collapse:collapse;font-size:10px;table-layout:auto}}
+th{{font-size:9px;color:#fff;background:#009B77;letter-spacing:.6px;text-transform:uppercase;text-align:left;padding:4px 6px;white-space:nowrap}}
 th:not(:first-child){{text-align:right}}
-td{{padding:3px 5px;border-bottom:1px solid #F3F4F6;color:#111827;font-variant-numeric:tabular-nums;white-space:nowrap}}
+td{{padding:3px 6px;border-bottom:1px solid #F3F4F6;color:#111827;font-variant-numeric:tabular-nums;white-space:nowrap}}
 td:not(:first-child){{text-align:right}}
 tr:last-child td{{border-bottom:none}}
 tr:nth-child(even) td{{background:#F4FDFB}}
+/* faint spare placeholders — reserved room for a missing row / column */
+th.sp{{background:#74CFB7;color:#E9FBF6;text-align:center;font-weight:700}}
+td.sp{{color:#D7DEE2!important;background:#FCFEFD!important;font-weight:400!important;text-align:center!important}}
+tr.sp td{{background:#FCFEFD!important;color:#DCE3E6;border-bottom:1px dashed #EEF3F2;font-weight:400}}
 .sigb{{color:#00C896;font-weight:800}}
 .sigr{{color:#F43F5E;font-weight:800}}
 .beat{{color:#00C896;font-weight:800;font-size:10px}}
@@ -459,18 +554,36 @@ tr:nth-child(even) td{{background:#F4FDFB}}
       <div class="val-c"><div class="val-l">ROE</div><div class="val-v">{roe_str}</div></div>
     </div>
   </div>
+  <div class="panel" style="display:flex;flex-direction:column">
+    <div class="sec">Recommendation</div>
+    <div style="font-size:40px;font-weight:900;line-height:1;color:{act_col};text-shadow:0 0 12px {act_col}44">{act}</div>
+    <div style="margin-top:9px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><div class="vol-lbl">Target</div><div style="font-size:13px;font-weight:900">{act_target}</div></div>
+      <div><div class="vol-lbl">Upside</div><div style="font-size:13px;font-weight:800;color:#00C896">{act_up}%</div></div>
+      <div><div class="vol-lbl">Confidence</div><div style="font-size:13px;font-weight:800;color:#00C896">{act_conf}%</div></div>
+      <div><div class="vol-lbl">R : R</div><div style="font-size:13px;font-weight:800">1:{act_rr}</div></div>
+      <div><div class="vol-lbl">Stop Loss</div><div style="font-size:13px;font-weight:800;color:#F43F5E">{act_sl}</div></div>
+      <div><div class="vol-lbl">Entry Zone</div><div style="font-size:12px;font-weight:800;color:#009B77">₹{ee_el}–{ee_eh}</div></div>
+    </div>
+    <div style="margin-top:auto">
+      <div class="vol-lbl" style="margin-top:9px">Confidence {act_conf}%</div>
+      <div class="conf-bar" style="margin:3px 0 0"><div class="conf-fill" style="width:{act_conf}%"></div></div>
+    </div>
+  </div>
   <div class="panel">
-    <div class="sec">Technical Summary</div>
-    <div class="ts-r"><span class="ts-l">Trend</span><span class="{trend_cls}">{trend_txt}</span></div>
-    <div class="ts-r"><span class="ts-l">RSI (14)</span><span class="ts-v">{rsi_s}</span></div>
-    <div class="ts-r"><span class="ts-l">MACD</span><span class="{mc}">{ml}</span></div>
-    <div class="ts-r"><span class="ts-l">ADX (14)</span><span class="ts-v">{adx_s}</span></div>
-    <div class="ts-r"><span class="ts-l">Stoch RSI</span><span class="{sc3}">{sl2}</span></div>
-    <div class="ts-r"><span class="ts-l">CCI (20)</span><span class="ts-v">{cci_s}</span></div>
-    <div class="ts-r"><span class="ts-l">RS Percentile</span><span class="{rs_cls}">{rsp}/99</span></div>
-    <div class="ts-r"><span class="ts-l">MAs Bullish</span><span class="{bull_cls}">{bull_n}/4</span></div>
-    <div class="ts-r"><span class="ts-l">vs SMA20</span><span class="{dev20_cls}">{dev20:+.1f}%</span></div>
-    <div class="ts-r"><span class="ts-l">vs SMA200</span><span class="{dev200_cls}">{dev200:+.1f}%</span></div>
+    <div class="sec">Analyst Sentiment</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <canvas id="dc" width="74" height="74"></canvas>
+      <div>
+        <div style="font-size:22px;font-weight:900;color:#00C896">{bp}%</div>
+        <div style="font-size:10px;font-weight:700;color:#00C896">{cons}</div>
+      </div>
+    </div>
+    <div class="dl" style="margin-top:9px">
+      <div class="dl-r"><div class="dot2" style="background:#00C896"></div><span>BUY {bp}%</span></div>
+      <div class="dl-r"><div class="dot2" style="background:#009B77"></div><span>HOLD {hp}%</span></div>
+      <div class="dl-r"><div class="dot2" style="background:#F43F5E"></div><span>SELL {sp2}%</span></div>
+    </div>
   </div>
 </div>
 
@@ -506,56 +619,47 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     </div>
     <div id="chartWrap"><canvas id="pc"></canvas></div>
   </div>
-  <div class="panel" style="padding:10px 12px;overflow-y:auto">
-    <div class="sec">Recommendation</div>
-    <div style="font-size:36px;font-weight:900;line-height:1;color:{act_col};text-shadow:0 0 12px {act_col}44">{act}</div>
-    <div style="margin-top:5px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
-      <div><div class="vol-lbl">Target</div><div style="font-size:13px;font-weight:900">{act_target}</div></div>
-      <div><div class="vol-lbl">Upside</div><div style="font-size:13px;font-weight:800;color:#00C896">{act_up}%</div></div>
-      <div><div class="vol-lbl">Confidence</div><div style="font-size:13px;font-weight:800;color:#00C896">{act_conf}%</div></div>
-      <div><div class="vol-lbl">R:R</div><div style="font-size:13px;font-weight:800">1:{act_rr}</div></div>
-    </div>
-    <div class="conf-bar" style="margin:4px 0"><div class="conf-fill" style="width:{act_conf}%"></div></div>
-    <div style="font-size:10px;color:#6B7280">SL: <b style="color:#F43F5E">{act_sl}</b></div>
-    <div style="margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px">
-      <div class="sec">Risk Analysis</div>{risk_html}</div>
-    <div style="margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px">
-      <div class="sec">S&amp;R · Pivot</div>
-      <div class="sr-r"><span style="color:#9CA3AF">R3</span><span style="font-weight:700;color:#F43F5E">{pp_r3}</span></div>
-      <div class="sr-r"><span style="color:#9CA3AF">R2</span><span style="font-weight:700;color:#F43F5E">{pp_r2}</span></div>
-      <div class="sr-r"><span style="color:#9CA3AF">R1</span><span style="font-weight:700;color:#F43F5E">{pp_r1}</span></div>
-      <div class="sr-r" style="border-top:2px solid #00C896;border-bottom:2px solid #00C896;margin:2px 0;padding:3px 0"><span style="font-weight:900">PIVOT</span><span style="font-weight:900">{pp_piv}</span></div>
-      <div class="sr-r"><span style="color:#9CA3AF">S1</span><span style="font-weight:700;color:#00C896">{pp_s1}</span></div>
-      <div class="sr-r"><span style="color:#9CA3AF">S2</span><span style="font-weight:700;color:#00C896">{pp_s2}</span></div>
-      <div class="sr-r"><span style="color:#9CA3AF">S3</span><span style="font-weight:700;color:#00C896">{pp_s3}</span></div>
-    </div>
-    <div style="margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px">
-      <div class="sec">Key Triggers</div>
-      <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:3px;color:#00C896">✅ Positive</div>
-      {pos_html}
-      <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-top:4px;margin-bottom:3px;color:#F43F5E">⚠️ Risks</div>
-      {neg_html}
+  <div class="panel" style="display:flex;flex-direction:column">
+    <div class="sec">Technical Summary</div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+      <div class="ts-r"><span class="ts-l">Trend</span><span class="{trend_cls}">{trend_txt}</span></div>
+      <div class="ts-r"><span class="ts-l">RSI (14) · Daily</span><span class="ts-v">{rsi_s}</span></div>
+      <div class="ts-r"><span class="ts-l">RSI (14) · Weekly</span><span class="{rsi_w_cls}">{rsi_w_s}</span></div>
+      <div class="ts-r"><span class="ts-l">RSI (14) · Monthly</span><span class="{rsi_m_cls}">{rsi_m_s}</span></div>
+      <div class="ts-r"><span class="ts-l">MACD</span><span class="{mc}">{ml}</span></div>
+      <div class="ts-r"><span class="ts-l">ADX (14)</span><span class="ts-v">{adx_s}</span></div>
+      <div class="ts-r"><span class="ts-l">Stoch RSI</span><span class="{sc3}">{sl2}</span></div>
+      <div class="ts-r"><span class="ts-l">CCI (20)</span><span class="ts-v">{cci_s}</span></div>
+      <div class="ts-r"><span class="ts-l">RS Percentile</span><span class="{rs_cls}">{rsp}/99</span></div>
+      <div class="ts-r"><span class="ts-l">MAs Bullish</span><span class="{bull_cls}">{bull_n}/4</span></div>
+      <div class="ts-r"><span class="ts-l">vs SMA20</span><span class="{dev20_cls}">{dev20:+.2f}%</span></div>
+      <div class="ts-r"><span class="ts-l">vs SMA200</span><span class="{dev200_cls}">{dev200:+.2f}%</span></div>
     </div>
   </div>
 </div>
 
-<!-- Row 2: Financials | MA | Volume -->
-<div class="row r2">
+<!-- Indicators row: Risk Analysis | S&R · Pivot | Moving Averages | Volume -->
+<div class="row r-ind">
   <div class="panel">
-    <div class="sec">Financial Summary (₹ Cr) · Annual</div>
-    <div style="overflow-x:auto">
-    <table><thead><tr><th>Metric</th>{ann_hdr}</tr></thead><tbody>{ann_body}</tbody></table>
-    </div>
-    <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
-      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">Rev CAGR: {rev_cagr_s}</div>
-      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">PAT CAGR: {np_cagr_s}</div>
-    </div>
+    <div class="sec">Risk Analysis</div>{risk_html}
+  </div>
+  <div class="panel">
+    <div class="sec">S&amp;R · Pivot</div>
+    <div class="sr-r"><span style="color:#9CA3AF">R3</span><span style="font-weight:700;color:#F43F5E">{pp_r3}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">R2</span><span style="font-weight:700;color:#F43F5E">{pp_r2}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">R1</span><span style="font-weight:700;color:#F43F5E">{pp_r1}</span></div>
+    <div class="sr-r" style="border-top:2px solid #00C896;border-bottom:2px solid #00C896;margin:2px 0;padding:3px 0"><span style="font-weight:900">PIVOT</span><span style="font-weight:900">{pp_piv}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S1</span><span style="font-weight:700;color:#00C896">{pp_s1}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S2</span><span style="font-weight:700;color:#00C896">{pp_s2}</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S3</span><span style="font-weight:700;color:#00C896">{pp_s3}</span></div>
   </div>
   <div class="panel">
     <div class="sec">Moving Averages</div>
+    <div class="tbl">
     <table><thead><tr><th>Period</th><th>SMA</th><th>EMA</th><th>Signal</th></tr></thead><tbody>{ma_rows}</tbody></table>
+    </div>
     <div style="margin-top:5px;padding:4px 7px;background:#F4FDFB;border-radius:5px;border-left:3px solid #00C896;font-size:10px">
-      <span style="font-weight:800;color:#00C896">{bull_n}/4 Bullish</span> · SMA20 {dev20:+.1f}% · SMA200 {dev200:+.1f}%
+      <span style="font-weight:800;color:#00C896">{bull_n}/4 Bullish</span> · SMA20 {dev20:+.2f}% · SMA200 {dev200:+.2f}%
     </div>
   </div>
   <div class="panel">
@@ -565,33 +669,35 @@ tr:nth-child(even) td{{background:#F4FDFB}}
       <div><div class="vol-lbl">Today</div><div class="vol-v">{vol_s}</div></div>
     </div>
     <div style="margin-bottom:5px"><div class="vol-lbl">vs Average</div>
-      <div style="font-size:13px;font-weight:800;color:{vc2}">{vol_dir} {abs(vol_pct):.1f}%</div></div>
+      <div style="font-size:13px;font-weight:800;color:{vc2}">{vol_dir} {abs(vol_pct):.2f}%</div></div>
     <div><div class="vol-lbl">Delivery %</div>
       <div style="font-size:12px;font-weight:700;color:{deliv_col}">{deliv_s}</div></div>
   </div>
 </div>
 
-<!-- Row 3: Quarterly | Sentiment | Notes -->
-<div class="row r3">
+<!-- Annual table + side small tables -->
+<div class="row r-tbl1">
   <div class="panel">
-    <div class="sec">Results Tracker — Last 8 Quarters</div>
-    <div style="overflow-x:auto">
-    <table><thead><tr><th>Quarter</th>{qtr_hdr}</tr></thead><tbody>{qtr_body}</tbody></table>
+    <div class="sec">Financial Summary (₹ Cr) · Annual</div>
+    <div class="tbl">
+    <table><thead><tr><th>Metric</th>{ann_hdr}</tr></thead><tbody>{ann_body}</tbody></table>
+    </div>
+    <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
+      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">Rev CAGR: {rev_cagr_s}</div>
+      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">PAT CAGR: {np_cagr_s}</div>
     </div>
   </div>
   <div class="panel">
-    <div class="sec">Analyst Sentiment</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <canvas id="dc" width="80" height="80"></canvas>
-      <div>
-        <div style="font-size:20px;font-weight:900;color:#00C896">{bp}%</div>
-        <div style="font-size:10px;font-weight:700;color:#00C896">{cons}</div>
-        <div class="dl">
-          <div class="dl-r"><div class="dot2" style="background:#00C896"></div><span>BUY {bp}%</span></div>
-          <div class="dl-r"><div class="dot2" style="background:#009B77"></div><span>HOLD {hp}%</span></div>
-          <div class="dl-r"><div class="dot2" style="background:#F43F5E"></div><span>SELL {sp2}%</span></div>
-        </div>
-      </div>
+    <div class="sec">Price Move History</div>
+    <div class="tbl">
+    <table><thead><tr><th>Period</th><th>Return</th></tr></thead><tbody>
+    {ret_rows}
+    <tr style="background:#F4FDFB"><td colspan="2" style="font-size:9px;font-weight:800;padding:4px 5px;color:#009B77">📌 Pivot Targets</td></tr>
+    <tr><td>T1 (R1)</td><td style="text-align:right;font-weight:800;color:#00C896">{t1s}</td></tr>
+    <tr><td>T2 (R2)</td><td style="text-align:right;font-weight:800;color:#00C896">{t2s}</td></tr>
+    <tr><td>T3 (R3)</td><td style="text-align:right;font-weight:800;color:#00C896">{t3s}</td></tr>
+    {ph_spare}
+    </tbody></table>
     </div>
   </div>
   <div class="panel">
@@ -604,32 +710,59 @@ tr:nth-child(even) td{{background:#F4FDFB}}
   </div>
 </div>
 
-<!-- Row 4: Price History | PE | Entry/Exit | Value Score -->
-<div class="row r4">
+<!-- Quarterly table + side small table -->
+<div class="row r-tbl2">
   <div class="panel">
-    <div class="sec">Price Move History</div>
-    <table><thead><tr><th>Period</th><th>Return</th></tr></thead><tbody>
-    {ret_rows}
-    <tr style="background:#F4FDFB"><td colspan="2" style="font-size:9px;font-weight:800;padding:4px 5px;color:#009B77">📌 Pivot Targets</td></tr>
-    <tr><td>T1 (R1)</td><td style="text-align:right;font-weight:800;color:#00C896">{t1s}</td></tr>
-    <tr><td>T2 (R2)</td><td style="text-align:right;font-weight:800;color:#00C896">{t2s}</td></tr>
-    <tr><td>T3 (R3)</td><td style="text-align:right;font-weight:800;color:#00C896">{t3s}</td></tr>
-    </tbody></table>
+    <div class="sec">Results Tracker — Last 8 Quarters</div>
+    <div class="tbl">
+    <table><thead><tr><th>Quarter</th>{qtr_hdr}</tr></thead><tbody>{qtr_body}</tbody></table>
+    </div>
   </div>
   <div class="panel">
     <div class="sec">PE Valuation Analysis</div>
     <div style="background:{vc3}18;border:1px solid {vc3}30;border-radius:6px;padding:5px;margin-bottom:6px;text-align:center;font-size:10px;font-weight:900;color:{vc3}">{verdict}</div>
-    <table style="margin-bottom:5px">
+    <div class="tbl" style="margin-bottom:6px">
+      <table>
       <thead><tr><th>PE Metric</th><th>Value</th></tr></thead>
       <tbody>
         <tr><td>Current P/E</td><td style="text-align:right;font-weight:800;color:{vc3}">{pe_str}</td></tr>
         <tr><td>5Y Mean PE</td><td style="text-align:right">{pe5_s}</td></tr>
         <tr><td>10Y Mean PE</td><td style="text-align:right">{pe10_s}</td></tr>
         <tr><td>Sector PE</td><td style="text-align:right">{sect_pe_s}</td></tr>
+        <tr><td>EPS Growth (5Y)</td><td style="text-align:right">{eps_cagr_s}</td></tr>
         <tr><td>PEG Ratio</td><td style="text-align:right;font-weight:700;color:{peg_col}">{peg_s}</td></tr>
       </tbody></table>
+    </div>
     <div class="vol-lbl" style="margin-bottom:2px">Peers</div>
-    <table><tbody>{peer_rows}</tbody></table>
+    <div class="tbl"><table><thead><tr><th>Peer</th><th>P/E</th></tr></thead><tbody>{peer_rows}</tbody></table></div>
+  </div>
+</div>
+
+<!-- Shareholding History + side small tables -->
+<div class="row r-tbl3">
+  <div class="panel">
+    <div class="sec">Shareholding History</div>
+    {sh_hist_table}
+  </div>
+  <div class="panel">
+    <div class="sec">Shareholding Pattern</div>
+    <div style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800;margin-bottom:8px;background:{sh_sig_col}18;border:1px solid {sh_sig_col}35;color:{sh_sig_col}">{sh_signal}</div>
+    {sh_bars}{sh_remarks}
+  </div>
+  <div class="panel">
+    <div class="sec">F&amp;O Open Interest</div>
+    <div class="tbl"><table><thead><tr><th>Date</th><th>OI</th><th>LTP</th></tr></thead><tbody>{oi_rows}{oi_spare}</tbody></table></div>
+  </div>
+</div>
+
+<!-- Key Triggers + side small tables -->
+<div class="row r-tbl4">
+  <div class="panel">
+    <div class="sec">Key Triggers</div>
+    <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:3px;color:#00C896">✅ Positive</div>
+    {pos_html}
+    <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-top:5px;margin-bottom:3px;color:#F43F5E">⚠️ Risks</div>
+    {neg_html}
   </div>
   <div class="panel">
     <div class="sec">Entry / Exit Strategy</div>
@@ -646,21 +779,11 @@ tr:nth-child(even) td{{background:#F4FDFB}}
   </div>
   <div class="panel">
     <div class="sec">Institutional Value Score</div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <div style="font-size:28px;font-weight:900;color:{va_col2};text-shadow:0 0 10px {va_col2}44">{va_score}</div>
-      <div><div style="font-size:10px;font-weight:800;color:{va_col2}">{va_verdict}</div><div style="font-size:9px;color:#9CA3AF;margin-top:1px">/ 100</div></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="font-size:34px;font-weight:900;color:{va_col2};text-shadow:0 0 10px {va_col2}44">{va_score}</div>
+      <div><div style="font-size:11px;font-weight:800;color:{va_col2}">{va_verdict}</div><div style="font-size:9px;color:#9CA3AF;margin-top:1px">/ 100</div></div>
     </div>
     {va_remarks}
-    <div style="margin-top:8px;border-top:1px solid #E5E7EB;padding-top:7px">
-      <div class="sec">Shareholding</div>
-      <div style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800;margin-bottom:6px;background:{sh_sig_col}18;border:1px solid {sh_sig_col}35;color:{sh_sig_col}">{sh_signal}</div>
-      {sh_bars}{sh_remarks}
-    </div>
-    {sh_hist_block}
-    <div style="margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px">
-      <div class="sec">F&amp;O OI</div>
-      <table><thead><tr><th>Date</th><th>OI</th><th>LTP</th></tr></thead><tbody>{oi_rows}</tbody></table>
-    </div>
   </div>
 </div>
 </div></div>
