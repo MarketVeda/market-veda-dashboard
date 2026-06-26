@@ -31,7 +31,8 @@ def _get(path):
             pass
     return None
 
-def trading_dates(n=12):
+def trading_dates(n=260):
+    """Return last n trading dates (Mon-Fri) going back from today."""
     dates, d = [], datetime.now(IST).date()
     while len(dates) < n:
         if d.weekday() < 5:
@@ -41,7 +42,7 @@ def trading_dates(n=12):
 
 def fetch(sym):
     sym = sym.upper()
-    dates = trading_dates(12)
+    dates = trading_dates(260)   # ~1 year of daily data for indicators
 
     live_raw = _get("data/live/latest.json") or {}
     live = (live_raw.get("quotes") or {}).get(sym) or {}
