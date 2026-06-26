@@ -320,12 +320,12 @@ body{{background:#0F0F0F;font-family:'Segoe UI',system-ui,sans-serif;font-size:1
 .panel{{background:#fff;border-radius:8px;border:1px solid #E5E7EB;padding:10px 12px;box-shadow:0 1px 4px rgba(0,200,150,.06)}}
 .panel:hover{{border-color:#00C896;box-shadow:0 0 12px rgba(0,200,150,.15);transition:.3s}}
 .row{{display:grid;gap:10px;margin-bottom:10px}}
-.r1{{grid-template-columns:.9fr .8fr 1fr}}
-.r2{{grid-template-columns:1fr 1fr 1fr 1fr}}
-.r3{{grid-template-columns:1.1fr 1fr .85fr .85fr}}
-.r4{{grid-template-columns:1.6fr .65fr 1.75fr}}
-.r5{{grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:0}}
-.r-chart{{grid-template-columns:1.8fr 1fr;margin-bottom:10px}}
+.r1{{grid-template-columns:.7fr .65fr .7fr .95fr}}
+.r2{{grid-template-columns:1.5fr 1fr 1fr}}
+.r3{{grid-template-columns:1.6fr 1fr 1fr}}
+.r4{{grid-template-columns:1fr 1fr 1fr 1fr}}
+.r5{{display:none}}
+.r-chart{{grid-template-columns:1.85fr 1fr;margin-bottom:10px}}
 .co-name{{font-size:22px;font-weight:900;color:#00C896;margin-bottom:3px;line-height:1;text-shadow:0 0 12px rgba(0,200,150,.3)}}
 .co-full{{font-size:9px;color:#9CA3AF;margin-bottom:8px}}
 .ov-grid{{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}}
@@ -417,7 +417,7 @@ tr:nth-child(even) td{{background:#F4FDFB}}
 </div>
 <div class="body">
 
-<!-- Row 1: Overview | Price | Tech Summary -->
+<!-- Row 1: Overview | Price | Valuation | Tech Summary -->
 <div class="row r1">
   <div class="panel">
     <div class="sec">Overview</div>
@@ -449,6 +449,17 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     </div>
   </div>
   <div class="panel">
+    <div class="sec">Valuation Metrics</div>
+    <div class="val-g">
+      <div class="val-c"><div class="val-l">P/E (TTM)</div><div class="val-v">{pe_str}</div></div>
+      <div class="val-c"><div class="val-l">P/B Ratio</div><div class="val-v">{pb_str}</div></div>
+      <div class="val-c"><div class="val-l">PEG</div><div class="val-v" style="color:{peg_col}">{peg_s}</div></div>
+      <div class="val-c"><div class="val-l">Rev CAGR 5Y</div><div class="val-v" style="color:#00C896">{rev_cagr_s}</div></div>
+      <div class="val-c"><div class="val-l">PAT CAGR 5Y</div><div class="val-v" style="color:#00C896">{np_cagr_s}</div></div>
+      <div class="val-c"><div class="val-l">ROE</div><div class="val-v">{roe_str}</div></div>
+    </div>
+  </div>
+  <div class="panel">
     <div class="sec">Technical Summary</div>
     <div class="ts-r"><span class="ts-l">Trend</span><span class="{trend_cls}">{trend_txt}</span></div>
     <div class="ts-r"><span class="ts-l">RSI (14)</span><span class="ts-v">{rsi_s}</span></div>
@@ -463,7 +474,7 @@ tr:nth-child(even) td{{background:#F4FDFB}}
   </div>
 </div>
 
-<!-- Full-width chart row -->
+<!-- Chart row -->
 <div class="row r-chart">
   <div class="panel" style="padding:10px 14px">
     <div class="chart-toolbar">
@@ -495,27 +506,56 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     </div>
     <div id="chartWrap"><canvas id="pc"></canvas></div>
   </div>
-  <div></div>
+  <div class="panel" style="padding:10px 12px;overflow-y:auto">
+    <div class="sec">Recommendation</div>
+    <div style="font-size:36px;font-weight:900;line-height:1;color:{act_col};text-shadow:0 0 12px {act_col}44">{act}</div>
+    <div style="margin-top:5px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
+      <div><div class="vol-lbl">Target</div><div style="font-size:13px;font-weight:900">{act_target}</div></div>
+      <div><div class="vol-lbl">Upside</div><div style="font-size:13px;font-weight:800;color:#00C896">{act_up}%</div></div>
+      <div><div class="vol-lbl">Confidence</div><div style="font-size:13px;font-weight:800;color:#00C896">{act_conf}%</div></div>
+      <div><div class="vol-lbl">R:R</div><div style="font-size:13px;font-weight:800">1:{act_rr}</div></div>
+    </div>
+    <div class="conf-bar" style="margin:4px 0"><div class="conf-fill" style="width:{act_conf}%"></div></div>
+    <div style="font-size:10px;color:#6B7280">SL: <b style="color:#F43F5E">{act_sl}</b></div>
+    <div style="margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px">
+      <div class="sec">Risk Analysis</div>{risk_html}</div>
+    <div style="margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px">
+      <div class="sec">S&amp;R · Pivot</div>
+      <div class="sr-r"><span style="color:#9CA3AF">R3</span><span style="font-weight:700;color:#F43F5E">{pp_r3}</span></div>
+      <div class="sr-r"><span style="color:#9CA3AF">R2</span><span style="font-weight:700;color:#F43F5E">{pp_r2}</span></div>
+      <div class="sr-r"><span style="color:#9CA3AF">R1</span><span style="font-weight:700;color:#F43F5E">{pp_r1}</span></div>
+      <div class="sr-r" style="border-top:2px solid #00C896;border-bottom:2px solid #00C896;margin:2px 0;padding:3px 0"><span style="font-weight:900">PIVOT</span><span style="font-weight:900">{pp_piv}</span></div>
+      <div class="sr-r"><span style="color:#9CA3AF">S1</span><span style="font-weight:700;color:#00C896">{pp_s1}</span></div>
+      <div class="sr-r"><span style="color:#9CA3AF">S2</span><span style="font-weight:700;color:#00C896">{pp_s2}</span></div>
+      <div class="sr-r"><span style="color:#9CA3AF">S3</span><span style="font-weight:700;color:#00C896">{pp_s3}</span></div>
+    </div>
+    <div style="margin-top:7px;border-top:1px solid #E5E7EB;padding-top:6px">
+      <div class="sec">Key Triggers</div>
+      <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:3px;color:#00C896">✅ Positive</div>
+      {pos_html}
+      <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-top:4px;margin-bottom:3px;color:#F43F5E">⚠️ Risks</div>
+      {neg_html}
+    </div>
+  </div>
 </div>
 
-<!-- Row 2: MA | Valuation | Volume | Risk -->
+<!-- Row 2: Financials | MA | Volume -->
 <div class="row r2">
+  <div class="panel">
+    <div class="sec">Financial Summary (₹ Cr) · Annual</div>
+    <div style="overflow-x:auto">
+    <table><thead><tr><th>Metric</th>{ann_hdr}</tr></thead><tbody>{ann_body}</tbody></table>
+    </div>
+    <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
+      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">Rev CAGR: {rev_cagr_s}</div>
+      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">PAT CAGR: {np_cagr_s}</div>
+    </div>
+  </div>
   <div class="panel">
     <div class="sec">Moving Averages</div>
     <table><thead><tr><th>Period</th><th>SMA</th><th>EMA</th><th>Signal</th></tr></thead><tbody>{ma_rows}</tbody></table>
     <div style="margin-top:5px;padding:4px 7px;background:#F4FDFB;border-radius:5px;border-left:3px solid #00C896;font-size:10px">
       <span style="font-weight:800;color:#00C896">{bull_n}/4 Bullish</span> · SMA20 {dev20:+.1f}% · SMA200 {dev200:+.1f}%
-    </div>
-  </div>
-  <div class="panel">
-    <div class="sec">Valuation Metrics</div>
-    <div class="val-g">
-      <div class="val-c"><div class="val-l">P/E (TTM)</div><div class="val-v">{pe_str}</div></div>
-      <div class="val-c"><div class="val-l">P/B Ratio</div><div class="val-v">{pb_str}</div></div>
-      <div class="val-c"><div class="val-l">PEG</div><div class="val-v" style="color:{peg_col}">{peg_s}</div></div>
-      <div class="val-c"><div class="val-l">Rev CAGR 5Y</div><div class="val-v" style="color:#00C896">{rev_cagr_s}</div></div>
-      <div class="val-c"><div class="val-l">PAT CAGR 5Y</div><div class="val-v" style="color:#00C896">{np_cagr_s}</div></div>
-      <div class="val-c"><div class="val-l">ROE</div><div class="val-v">{roe_str}</div></div>
     </div>
   </div>
   <div class="panel">
@@ -529,57 +569,10 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     <div><div class="vol-lbl">Delivery %</div>
       <div style="font-size:12px;font-weight:700;color:{deliv_col}">{deliv_s}</div></div>
   </div>
-  <div class="panel"><div class="sec">Risk Analysis</div>{risk_html}</div>
 </div>
 
-<!-- Row 3: Financials | Triggers | S&R | Recommendation -->
+<!-- Row 3: Quarterly | Sentiment | Notes -->
 <div class="row r3">
-  <div class="panel">
-    <div class="sec">Financial Summary (₹ Cr) · Annual</div>
-    <div style="overflow-x:auto">
-    <table><thead><tr><th>Metric</th>{ann_hdr}</tr></thead><tbody>{ann_body}</tbody></table>
-    </div>
-    <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
-      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">Rev CAGR: {rev_cagr_s}</div>
-      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">PAT CAGR: {np_cagr_s}</div>
-    </div>
-  </div>
-  <div class="panel">
-    <div class="sec">Key Triggers</div>
-    <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:3px;color:#00C896">✅ Positive</div>
-    {pos_html}
-    <div style="height:4px"></div>
-    <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:3px;color:#F43F5E">⚠️ Risks</div>
-    {neg_html}
-  </div>
-  <div class="panel">
-    <div class="sec">S&amp;R · Pivot</div>
-    <div class="sr-r"><span style="color:#9CA3AF">R3</span><span style="font-weight:700;color:#F43F5E">{pp_r3}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">R2</span><span style="font-weight:700;color:#F43F5E">{pp_r2}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">R1</span><span style="font-weight:700;color:#F43F5E">{pp_r1}</span></div>
-    <div class="sr-r" style="border-top:2px solid #00C896;border-bottom:2px solid #00C896;margin:3px 0;padding:4px 0">
-      <span style="font-weight:900">PIVOT</span><span style="font-weight:900">{pp_piv}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">S1</span><span style="font-weight:700;color:#00C896">{pp_s1}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">S2</span><span style="font-weight:700;color:#00C896">{pp_s2}</span></div>
-    <div class="sr-r"><span style="color:#9CA3AF">S3</span><span style="font-weight:700;color:#00C896">{pp_s3}</span></div>
-  </div>
-  <div class="panel">
-    <div class="sec">Recommendation</div>
-    <div style="font-size:42px;font-weight:900;line-height:1;color:{act_col};text-shadow:0 0 15px {act_col}44">{act}</div>
-    <div style="margin-top:6px"><div class="vol-lbl">Target (R2)</div>
-      <div style="font-size:17px;font-weight:900;color:#111827">{act_target}</div></div>
-    <div style="margin-top:4px"><div class="vol-lbl">Upside</div>
-      <div style="font-size:14px;font-weight:800;color:#00C896">{act_up}%</div></div>
-    <div style="margin-top:4px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-        <span class="vol-lbl">Confidence</span><span style="font-size:13px;font-weight:900;color:#00C896">{act_conf}%</span></div>
-      <div class="conf-bar"><div class="conf-fill" style="width:{act_conf}%"></div></div></div>
-    <div style="margin-top:5px;font-size:10px;color:#6B7280">SL: <b style="color:#F43F5E">{act_sl}</b> · R:R <b>1:{act_rr}</b></div>
-  </div>
-</div>
-
-<!-- Row 4: Quarterly | Sentiment | Notes -->
-<div class="row r4">
   <div class="panel">
     <div class="sec">Results Tracker — Last 8 Quarters</div>
     <div style="overflow-x:auto">
@@ -611,8 +604,8 @@ tr:nth-child(even) td{{background:#F4FDFB}}
   </div>
 </div>
 
-<!-- Row 5: Price History | PE Analysis | Entry/Exit | Value -->
-<div class="row r5">
+<!-- Row 4: Price History | PE | Entry/Exit | Value Score -->
+<div class="row r4">
   <div class="panel">
     <div class="sec">Price Move History</div>
     <table><thead><tr><th>Period</th><th>Return</th></tr></thead><tbody>
