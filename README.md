@@ -1,221 +1,279 @@
 # MarketVeda Dashboard
 **`github.com/MarketVeda/market-veda-dashboard`**
 
-Generate a complete HTML stock analysis dashboard for any NSE symbol by triggering one GitHub Actions workflow — from mobile, Claude, or any AI. No local machine. No Kite API key at generation time.
+> Complete stock intelligence dashboard for any NSE symbol.  
+> Triggered on demand — from mobile, Claude, or GitHub web UI.  
+> No local machine needed. Opens directly in browser. No zip file.
 
 ---
 
-## How It Works
+## What This Generates
 
-```
-You (mobile / Claude / any AI)
-        │
-        │  trigger via GitHub Actions API or web UI
-        ▼
-GitHub Actions runs  build.py  SYMBOL
-        │
-        ├── fetch  data/live/latest.json          → live price OHLCV
-        ├── fetch  data/daily/YYYY-MM-DD.json      → EOD + DMA + RS (10 days)
-        ├── fetch  data/intraday/YYYY-MM-DD.json   → 15min candles
-        ├── fetch  data/fno_oi/YYYY-MM-DD.json     → F&O Open Interest
-        ├── fetch  data/delivery/YYYY-MM-DD.json   → NSE delivery %
-        ├── fetch  data/financials/financials.json → 12yr P&L, ratios
-        └── fetch  data/news/news.json             → announcements
-                │
-                ▼
-        compute all indicators
-        (RSI MACD ADX StochRSI CCI MAs Pivots CAGR Minervini PE-analysis)
-                │
-                ▼
-        generate  out.html  (~160 KB, self-contained)
-                │
-                ▼
-GitHub Artifact  →  download  →  open in browser / print PDF
-```
+A self-contained HTML dashboard (~180 KB) with dark neon design:
 
-Data comes from **`github.com/MarketVeda/nse-market-db`** — the automated pipeline that runs daily and hourly.
+| Row | Panels |
+|---|---|
+| **Row 1** | Overview · Live Price + OHLCV · **Candlestick Chart with S&R Zones** · Technical Summary |
+| **Row 2** | Moving Averages (9/20/50/100/200) · Valuation Metrics · Volume Analysis · Risk Analysis |
+| **Row 3** | 5-Year Financials · Key Triggers · Support & Resistance Pivots · Recommendation |
+| **Row 4** | 8-Quarter Results Tracker · Analyst Sentiment (donut) · Notes & Insights |
+| **Row 5** | Price Move History + CAGR Targets · PE Analysis · Entry/Exit Strategy + **Chart Patterns** · **Institutional Value Analysis** |
 
 ---
 
-## Files
+## 4-Module Architecture
 
 ```
-market-veda-dashboard/
-├── build.py                           ← Single script. Does everything.
-├── requirements.txt                   ← Only: requests
-├── README.md                          ← This file
-├── SKILL.md                           ← Instruction file for Claude / any AI
-└── .github/
-    └── workflows/
-        └── dashboard.yml              ← GitHub Actions workflow (on-demand)
+build.py          ← Entry point. Fetches data, calls all 4 modules.
+indicators.py     ← RSI MACD ADX StochRSI CCI MAs Pivots S&R Patterns CAGR Entry/Exit Minervini
+financials.py     ← PE analysis PEG ROE FCF Value score Institutional research
+scoring.py        ← News sentiment Recommendation Risk Triggers
+design.py         ← Complete HTML dashboard (dark neon + candlestick + S&R overlay)
 ```
-
-One script. No modules. No config files. No secrets needed.
 
 ---
 
-## Step-by-Step Setup (do once)
-
-### 1. Create the repository
-
-Go to **github.com/new**
-- Owner: `MarketVeda`
-- Name: `market-veda-dashboard`
-- Visibility: **Private**
-- Click **Create repository**
-
-### 2. Upload the files
-
-Upload these files to the repo root (drag and drop in GitHub web UI):
-```
-build.py
-requirements.txt
-README.md
-SKILL.md
-.github/workflows/dashboard.yml
-```
-
-That's it. No secrets. No tokens. No configuration. The logo is already embedded inside `build.py`.
-
-### 3. Enable Actions
-
-Go to repo → **Actions** tab → click **"I understand my workflows, enable them"**
-
----
-
-## How to Generate a Dashboard
+## How to Trigger a Dashboard
 
 ### From GitHub Web UI (works on mobile too)
+1. Go to `github.com/MarketVeda/market-veda-dashboard`
+2. Click **Actions** → **dashboard** → **Run workflow**
+3. Type any NSE symbol: `CGPOWER` / `RELIANCE` / `HDFCBANK` / `TITAN` etc.
+4. Click **Run workflow**
+5. Wait ~45 seconds
+6. Click the completed run → copy the URL from the **Summary** section
+7. Open URL directly in browser — no download, no zip
 
-1. Open `github.com/MarketVeda/market-veda-dashboard`
-2. Click **Actions**
-3. Click **dashboard** (left sidebar)
-4. Click **Run workflow** (top right)
-5. Type the symbol: `RELIANCE` or `HDFCBANK` or `TITAN` or any NSE symbol
-6. Click the green **Run workflow** button
-7. Wait ~60 seconds
-8. Click the completed run → scroll down → **Artifacts**
-9. Download `MarketVeda-RELIANCE`
-10. Unzip → open `out.html` in browser
+### From Claude
+Say: *"give me CGPOWER dashboard"* → Claude reads `SKILL.md` and triggers automatically.
 
-### From Claude (via SKILL.md)
-
-Claude reads `SKILL.md` and triggers the workflow via GitHub API. No PAT token needed for triggering from Claude — Claude uses its own GitHub tool.
-
-### From curl (any script or AI)
-
+### From curl / any script
 ```bash
 curl -X POST \
-  -H "Authorization: token YOUR_GITHUB_PAT" \
+  -H "Authorization: token YOUR_PAT_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
   https://api.github.com/repos/MarketVeda/market-veda-dashboard/actions/workflows/dashboard.yml/dispatches \
   -d '{"ref":"main","inputs":{"symbol":"CGPOWER"}}'
 ```
 
+### Direct Dashboard URL (after workflow runs)
+```
+https://marketveda.github.io/market-veda-dashboard/SYMBOL_YYYY-MM-DD.html
+```
+Example:
+```
+https://marketveda.github.io/market-veda-dashboard/CGPOWER_2026-06-26.html
+```
+
+All dashboards index:
+```
+https://marketveda.github.io/market-veda-dashboard/
+```
+
+---
+
+## One-Time Setup
+
+### Step 1 — Enable GitHub Pages
+1. Go to repo → **Settings** → **Pages**
+2. Source → **Deploy from a branch**
+3. Branch → **gh-pages** → **/ (root)**
+4. Click **Save**
+
+### Step 2 — Enable Actions
+Go to **Actions** tab → click **"enable workflows"** if prompted.
+
+That's it. No secrets needed. Logo is embedded inside `design.py`.
+
 ---
 
 ## What the Dashboard Shows
 
-### Row 1 — Overview · Price · Chart · Technicals
-| Panel | Content |
-|---|---|
-| Overview | Company name, Market Cap, 52W H/L, Beta, P/E, Book Value, ROCE, ROE |
-| Live Price | LTP, change %, OHLCV, Avg price, Upper/Lower circuit, Bid/Ask |
-| Price Chart | Interactive Chart.js — 8 timeframes: 1D/1W/1M/3M/6M/1Y/2Y/5Y |
-| Technical Summary | RSI, MACD, ADX, Stoch RSI, CCI, RS vs Nifty50/500, Minervini Stage |
+### Colour Palette (preserved exactly)
+| Colour | Hex | Used for |
+|---|---|---|
+| Neon Green | `#00E87A` | Primary accent, bullish signals, borders |
+| Dark Red | `#FF3B6B` | Bearish, negative, SELL |
+| Amber | `#F59E0B` | Caution, HOLD, neutral |
+| Page BG | `#070B14` | Dark near-black background |
+| Card BG | `#0D1117` | Dashboard card (GitHub dark) |
+| Text | `#C9D1D9` | Body text |
 
-### Row 2 — Moving Averages · Valuation · Volume · Risk
-| Panel | Content |
-|---|---|
-| Moving Averages | SMA + EMA for 20/50/100/200 with signal. MA alignment badge. |
-| Valuation | P/E, P/B, EV/EBITDA, PEG, ROE, ROCE grid |
-| Volume | Today vs 20D avg, delivery %, Bid/Ask qty |
-| Risk | 5 categories (Market/Sector/Company/Financial/Liquidity) + Overall |
+### Candlestick Chart — 3 Modes
+- **🕯 Candle** — OHLC candlesticks with S&R zone overlays
+- **📈 Line** — Clean price line
+- **📊 S&R** — Highlighted support and resistance zones
 
-### Row 3 — Financials · Triggers · S&R · Recommendation
-| Panel | Content |
-|---|---|
-| Financial Summary | 5-year table: Revenue, Op Profit, OPM%, Net Profit, EPS, ROE |
-| Key Triggers | Up to 6 positive ✅ and 4 negative ⚠️ from news + technicals |
-| Support & Resistance | Classic pivot: S3 S2 S1 Pivot R1 R2 R3 |
-| Recommendation | BUY/HOLD/SELL, 12M target, upside %, confidence bar, stop-loss, R:R |
+Timeframes: 1D · 1W · 1M · 3M · 6M · 1Y · 5Y
 
-### Row 4 — Results Tracker · Analyst Sentiment · Notes
-| Panel | Content |
-|---|---|
-| Results Tracker | Last 8 quarters: Revenue, Net Profit, EPS, OPM%, BEAT label |
-| Analyst Sentiment | Donut: BUY%/HOLD%/SELL% computed from news score + technicals |
-| Notes | 5 auto-generated insight lines |
+### Chart Patterns Detected (automatically)
+| Pattern | Direction | Signal |
+|---|---|---|
+| VCP (Volatility Contraction) | Bullish | Pre-breakout setup — key Minervini signal |
+| Double Bottom | Bullish | Reversal at support |
+| Head & Shoulders | Bearish | Reversal at resistance |
+| Cup & Handle | Bullish | Continuation breakout |
+| Bullish Flag | Bullish | Pullback in uptrend |
+| Bearish Flag | Bearish | Bounce in downtrend |
+| Doji | Neutral | Indecision — watch next candle |
+| Hammer | Bullish | Reversal candle after downtrend |
+| Shooting Star | Bearish | Reversal candle after uptrend |
 
-### Row 5 — Price Move · PE Analysis · Entry/Exit · OI
-| Panel | Content |
-|---|---|
-| Price Move History | % return for 1D/2D/5D/7D/1W/1M/2M/6M + CAGR + 3M/6M/1Y targets |
-| PE Valuation | Current vs 5Y mean, 10Y mean, sector PE, peer PE comparison |
-| Entry / Exit | Entry zone, stop-loss, T1/T2/T3, R:R, ideal trigger condition |
-| OI & Delivery | F&O OI 5-day trend + delivery % |
+### Support & Resistance Zones
+Detected algorithmically from swing highs and lows:
+- Minimum 2 touches to qualify as a zone
+- Zones within 1% of each other are merged
+- 4 resistance zones above + 4 support zones below current price
+- Displayed as coloured lines on the candlestick chart
 
 ---
 
 ## Indicators Computed
 
-All computed from raw OHLCV inside `build.py`. No external TA library.
+All computed from raw OHLCV. No external TA library.
 
-| Indicator | Method |
-|---|---|
-| RSI (14) | Wilder smoothing |
-| MACD (12,26,9) | EMA-based |
-| ADX (14) | Wilder DMI |
-| Stochastic RSI | RSI of RSI, then Stochastic |
-| CCI (20) | Classic formula |
-| SMA / EMA | 20, 50, 100, 200 periods |
-| Pivot Points | Classic daily (S3–R3) |
-| Minervini SEPA | 6 filters: price vs DMA50/150/200, DMA50>DMA200, 52W, RS |
-| Price Returns | 1D, 2D, 5D, 7D, 1W, 1M, 2M, 6M |
-| CAGR | Annualised from available EOD series |
-| PE 5Y/10Y Mean | From financials.json ratios history |
-| Sector PE | Built-in benchmark table (20 sectors) |
+| Indicator | Method | Period |
+|---|---|---|
+| RSI | Wilder smoothing | 14 |
+| MACD | EMA-based | 12, 26, 9 |
+| ADX | Wilder DMI | 14 |
+| Stochastic RSI | RSI of RSI | 14, 14, K=3, D=3 |
+| CCI | Classic formula | 20 |
+| VWAP | Price × Volume weighted | Intraday |
+| SMA / EMA | Rolling / Exponential | 9, 20, 50, 100, 200 |
+| Pivot Points | Classic daily | S3 S2 S1 Pivot R1 R2 R3 |
+| Minervini SEPA | 6 filters | Price vs DMA + RS + 52W |
+| Price Returns | % change | 1D 2D 5D 7D 1W 1M 2M 6M |
+| CAGR | Annualised from series | From available EOD |
+| S&R Zones | Swing high/low detection | Window=3, Min touches=2 |
+| Chart Patterns | Rule-based detection | 9 pattern types |
 
 ---
 
-## Colour Palette (preserved exactly)
+## PE & Valuation Analysis
 
-| Colour | Hex | Used for |
-|---|---|---|
-| Teal | `#00C896` | Primary accent, borders, bullish signals |
-| Teal Dark | `#009B77` | Table headers, secondary accents |
-| Teal Light | `#E6FAF5` | Row highlights, latest quarter |
-| Red | `#F43F5E` | Bearish, negative, SELL |
-| Amber | `#F59E0B` | Caution, HOLD, Stoch RSI warning |
-| Body BG | `#0F0F0F` | Page background (near-black) |
-| Card BG | `#FFFFFF` | Dashboard card background |
+### PE vs History
+```
+Current PE        → from financials.json
+5Y Mean PE        → average of last 5 annual PE values
+10Y Mean PE       → average of last 10 annual PE values
+Sector PE         → built-in sector benchmark table
+Peer PE           → peer list per sector (queried symbol excluded)
+
+Verdict:
+  Current < 85% of 5Y mean  → CHEAP ✅
+  Current 85–110% of 5Y mean → FAIR VALUE
+  Current 110–130% of 5Y mean → SLIGHTLY EXPENSIVE
+  Current > 130% of 5Y mean  → EXPENSIVE ⚠️
+```
+
+### PEG Ratio
+```
+PEG = Current PE / EPS CAGR (5Y)
+
+PEG < 1.0  → Growth available at a discount — very attractive
+PEG 1–1.5  → Fair growth-adjusted valuation
+PEG 1.5–2.5 → Paying premium for growth
+PEG > 2.5  → Very expensive for the growth rate
+```
+
+---
+
+## Institutional Value Analysis (New)
+
+Scores the stock 0–100 based on:
+
+| Factor | Max Points |
+|---|---|
+| Revenue CAGR 5Y (≥20% = excellent) | +15 |
+| PAT CAGR 5Y (≥25% = excellent) | +15 |
+| Average ROE (≥20% = high quality) | +10 |
+| PE vs 5Y mean (cheap = bonus) | +15 |
+| PEG ratio (< 1 = large bonus) | +15 |
+| FCF consistency | +8 |
+
+**Verdict:**
+- 80–100 → **STRONG BUY 💚 (Institutional Grade)**
+- 65–79 → **BUY 🟢 (Attractive Valuation)**
+- 50–64 → **HOLD 🟡 (Fair Value)**
+- 35–49 → **REDUCE 🟠 (Expensive)**
+- 0–34 → **AVOID 🔴 (Overvalued / Deteriorating)**
 
 ---
 
 ## Data Sources
 
-| Data | nse-market-db file | Refreshed |
+All data from `github.com/MarketVeda/nse-market-db`:
+
+| Data | File | Refreshed |
 |---|---|---|
 | Live price, OHLCV, Bid/Ask | `data/live/latest.json` | Hourly 9:15–15:30 IST |
-| EOD close, DMAs, RS, 52W H/L | `data/daily/YYYY-MM-DD.json` | 4:00 PM IST daily |
-| 15min candles (for 1D chart) | `data/intraday/YYYY-MM-DD.json` | 4:00 PM IST daily |
-| F&O Open Interest | `data/fno_oi/YYYY-MM-DD.json` | 4:00 PM IST daily |
-| Delivery % (NSE bhavcopy) | `data/delivery/YYYY-MM-DD.json` | 4:00 PM IST daily |
-| 12yr fundamentals | `data/financials/financials.json` | 4:30 PM IST daily |
-| Corporate announcements | `data/news/news.json` | Hourly |
+| EOD close, DMAs, RS, 52W | `data/daily/YYYY-MM-DD.json` | 4:00 PM IST |
+| 15-min intraday candles | `data/intraday/YYYY-MM-DD.json` | 4:00 PM IST |
+| F&O Open Interest | `data/fno_oi/YYYY-MM-DD.json` | 4:00 PM IST |
+| Delivery % | `data/delivery/YYYY-MM-DD.json` | 4:00 PM IST |
+| Fundamentals (12yr P&L) | `data/financials/financials.json` | 4:30 PM IST |
+| News & Announcements | `data/news/news.json` | Hourly |
 
 ---
 
 ## Relationship to nse-market-db
 
 ```
-nse-market-db  (automated data pipeline)
-      ↓  writes JSON to GitHub daily/hourly
-market-veda-dashboard  (on-demand dashboard generator)
-      ↓  reads JSON, computes, generates HTML
-Your browser  (offline HTML file)
+nse-market-db  (automated data pipeline — runs daily + hourly)
+      ↓  pushes JSON files to GitHub
+market-veda-dashboard  (on-demand dashboard — runs when you trigger it)
+      ↓  reads JSON → computes → generates HTML → publishes to GitHub Pages
+Browser  (open URL directly — no download needed)
 ```
 
 ---
 
+## Notes
+
+1. **RSI/MACD/ADX accuracy** improves as nse-market-db accumulates more days of EOD data. With 2 days it shows N/A; with 15+ trading days all indicators work correctly.
+
+2. **Candlestick chart** shows true OHLC candles for 1Y timeframe using EOD data. Other timeframes use line charts.
+
+3. **S&R zones** are detected from swing highs and lows in available EOD data. More data = more accurate zones.
+
+4. **PEG ratio** is computed from EPS CAGR in `financials.json`. If screener.in data is incomplete, it shows N/A.
+
+5. **Artifact expiry**: The GitHub Actions artifact (zip backup) expires in 1 day, but the GitHub Pages URL is permanent.
+
+---
+
+## Connect Claude as a Skill
+
+See `SKILL.md` for full instructions. In short:
+
+1. Share your GitHub PAT token with Claude (scope: `repo` + `workflow`)
+2. Say: *"give me RELIANCE dashboard"*
+3. Claude triggers the workflow via API and gives you the direct URL
+
+---
+
 *MarketVeda · Knowledge Behind Every Trade · June 2026*
+
+---
+
+## Connecting AI Assistants
+
+See **SKILL.md** for complete instructions. Quick summary:
+
+| AI Platform | How to Connect |
+|---|---|
+| Claude Mobile App | Share PAT token → say "give me CGPOWER dashboard" → Claude triggers and sends you the URL |
+| Claude Web | Same as mobile — works identically |
+| ChatGPT | Configure as a ChatGPT Action using the GitHub API endpoint in SKILL.md |
+| Gemini | Use Gemini Extensions or function calling with the API from SKILL.md |
+| Any chatbot | POST to GitHub API from your backend — PAT stored server-side |
+| iOS/Android shortcut | Create an HTTP Request shortcut — no AI needed |
+
+### Fastest way from your mobile
+1. Open Claude mobile app
+2. Type: *"give me TITAN dashboard"*
+3. Claude triggers GitHub Actions automatically
+4. Claude sends you the direct link
+5. Tap the link — dashboard opens in your phone browser instantly
+
