@@ -108,7 +108,8 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
               arow("EPS (₹)","eps")+arow("ROE %","roe","%"))
 
     # Quarterly
-    qtr_hdr="".join(f"<th{'  style=\"background:#007A5E\"' if i==len(qtrs)-1 else ''}>{q['q']}</th>" for i,q in enumerate(qtrs))
+    _qs='  style="background:#007A5E"'
+    qtr_hdr="".join(f"<th{_qs if i==len(qtrs)-1 else ''}>{q['q']}</th>" for i,q in enumerate(qtrs))
     def qrow(lbl,key,suf=""):
         cells=""
         for i,q in enumerate(qtrs):
@@ -116,7 +117,8 @@ def generate(sym,data,tech,fp,sc,sent,pos,neg,risk_r):
             st=' style="background:#E6FAF5;font-weight:800;color:#009B77"' if last else ""
             cells+=f"<td{st}>{v:,.0f}{suf}</td>" if isinstance(v,(int,float)) else f"<td{st}>N/A</td>"
         return f"<tr><td>{lbl}</td>{cells}</tr>"
-    qtr_beat="".join(f'<td class="beat"{"  style=\"background:#E6FAF5\"" if i==len(qtrs)-1 else ""}>BEAT</td>' for i in range(len(qtrs)))
+    _bs='  style="background:#E6FAF5"'
+    qtr_beat="".join(f'<td class="beat"{_bs if i==len(qtrs)-1 else ""}>' + 'BEAT</td>' for i in range(len(qtrs)))
     qtr_body=qrow("Revenue","rev")+qrow("Net Profit","np")+qrow("EPS (₹)","eps")+qrow("OPM %","opm","%")+f"<tr><td>Result</td>{qtr_beat}</tr>"
 
     # Returns table
