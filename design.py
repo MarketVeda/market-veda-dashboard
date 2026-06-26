@@ -449,15 +449,14 @@ tr:nth-child(even) td{{background:#F4FDFB}}
     </div>
   </div>
   <div class="panel" style="padding:10px 14px">
-  <div class="panel" style="padding:10px 14px">
     <div class="chart-toolbar">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <div class="tf-row">
-          <button class="tf-btn active" onclick="setTF('1M',this)">1M</button>
+          <button class="tf-btn" onclick="setTF('1M',this)">1M</button>
           <button class="tf-btn" onclick="setTF('2M',this)">2M</button>
           <button class="tf-btn" onclick="setTF('3M',this)">3M</button>
           <button class="tf-btn" onclick="setTF('6M',this)">6M</button>
-          <button class="tf-btn" onclick="setTF('1Y',this)">1Y</button>
+          <button class="tf-btn active" onclick="setTF('1Y',this)">1Y</button>
           <button class="tf-btn" onclick="setTF('2Y',this)">2Y</button>
           <button class="tf-btn" onclick="setTF('5Y',this)">5Y</button>
         </div>
@@ -496,36 +495,7 @@ tr:nth-child(even) td{{background:#F4FDFB}}
 </div>
 
 <!-- Full-width chart row -->
-  <div class="panel" style="padding:10px 14px">
-    <div class="chart-toolbar">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <div class="tf-row">
-          <button class="tf-btn active" onclick="setTF('1M',this)">1M</button>
-          <button class="tf-btn" onclick="setTF('2M',this)">2M</button>
-          <button class="tf-btn" onclick="setTF('3M',this)">3M</button>
-          <button class="tf-btn" onclick="setTF('6M',this)">6M</button>
-          <button class="tf-btn" onclick="setTF('1Y',this)">1Y</button>
-          <button class="tf-btn" onclick="setTF('2Y',this)">2Y</button>
-          <button class="tf-btn" onclick="setTF('5Y',this)">5Y</button>
-        </div>
-        <div class="chart-tabs">
-          <button class="ct-btn active" onclick="setChart('price',this)">Price</button>
-          <button class="ct-btn" onclick="setChart('pe',this)">PE Ratio</button>
-          <button class="ct-btn" onclick="setChart('pb',this)">Price to Book</button>
-        </div>
-      </div>
-      <div class="dma-legend">
-        <span><span class="dma-dot" style="background:#00C896"></span>DMA10</span>
-        <span><span class="dma-dot" style="background:#009B77"></span>DMA20</span>
-        <span><span class="dma-dot" style="background:#F59E0B"></span>DMA50</span>
-        <span><span class="dma-dot" style="background:#374151;height:3px"></span>DMA100</span>
-        <span><span class="dma-dot" style="background:#F43F5E;height:3px"></span>DMA200</span>
-        <span><span class="dma-dot" style="background:rgba(0,200,150,.4)"></span>Vol↑</span>
-        <span><span class="dma-dot" style="background:rgba(244,63,94,.4)"></span>Vol↓</span>
-      </div>
-    </div>
-    <div id="chartWrap"><canvas id="pc"></canvas></div>
-  </div>
+  
 
 <!-- Row 2: MA | Valuation | Volume | Risk -->
 <div class="row r2">
@@ -708,7 +678,7 @@ const LTP={ltp};
 const PE_RATIO={cur_pe_val};
 const PB_RATIO={pb_val};
 
-let PC=null,CHART_TYPE='price',TF='1M';
+let PC=null,CHART_TYPE='price',TF='1Y';
 const TF_N={{'1M':21,'2M':42,'3M':63,'6M':126,'1Y':252,'2Y':504,'5Y':9999}};
 
 function dlPage(){{
