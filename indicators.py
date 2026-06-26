@@ -4,6 +4,7 @@ indicators.py — Technical Indicators + Chart Pattern Detection
 All computed from raw OHLCV. No external TA library needed.
 """
 import math
+import datetime
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -39,7 +40,26 @@ def rsi(s, n=14):
     ag=sum(g[:n])/n; al=sum(l[:n])/n
     for i in range(n,len(g)):
         ag=(ag*(n-1)+g[i])/n; al=(al*(n-1)+l[i])/n
-    return round(100-100/(1+ag/al),1) if al else 100.0
+    return round(100-100/(1+ag/al),2) if al else 100.0
+
+
+def _resample(s, keyfn):
+    """Collapse daily bars into one bar per bucket, keeping the last bar of each."""
+    out=[]; lastk=None
+    for e in s:
+        try: k=keyfn(e["date"])
+        except Exception: continue
+        if k!=lastk: out.append(e); lastk=k
+        else: out[-1]=e
+    return out
+
+def rsi_weekly(s, n=14):
+    wk=_resample(s, lambda d:datetime.date(*map(int,d.split("-"))).isocalendar()[:2])
+    return rsi(wk, n)
+
+def rsi_monthly(s, n=14):
+    mo=_resample(s, lambda d:tuple(d.split("-")[:2]))
+    return rsi(mo, n)
 
 
 # ── MACD ──────────────────────────────────────────────────────────────────────
@@ -68,7 +88,7 @@ def adx(s, n=14):
         atr=atr-atr/n+tr[i]; sp=sp-sp/n+pdm[i]; sn=sn-sn/n+ndm[i]
         p=100*sp/atr if atr else 0; nn=100*sn/atr if atr else 0
         d=p+nn; dx.append(100*abs(p-nn)/d if d else 0)
-    return round(sum(dx[-n:])/n,1) if len(dx)>=n else None
+    return round(sum(dx[-n:])/n,2) if len(dx)>=n else None
 
 
 # ── Stochastic RSI ────────────────────────────────────────────────────────────
@@ -90,8 +110,8 @@ def stoch_rsi(s, rn=14, sn=14, k=3, d=3):
         w=rv[i-sn+1:i+1]; lo=min(w); hi=max(w)
         rk.append(100*(rv[i]-lo)/(hi-lo) if hi!=lo else 50)
     ks=sma(rk,k); ds=sma([v for v in ks if v is not None],d)
-    return (round(last(ks),1) if last(ks) else None,
-            round(last(ds),1) if last(ds) else None)
+    return (round(last(ks),2) if last(ks) else None,
+            round(last(ds),2) if last(ds) else None)
 
 
 # ── CCI ───────────────────────────────────────────────────────────────────────
@@ -99,7 +119,7 @@ def cci(s, n=20):
     if len(s)<n: return None
     tp=[(x["h"]+x["l"]+x["c"])/3 for x in s[-n:]]
     m=sum(tp)/n; md=sum(abs(t-m) for t in tp)/n
-    return round((tp[-1]-m)/(0.015*md),1) if md else 0
+    return round((tp[-1]-m)/(0.015*md),2) if md else 0
 
 
 # ── VWAP ──────────────────────────────────────────────────────────────────────
@@ -367,7 +387,13 @@ def compute(data):
     }
 
     lat=s[-1] if s else {}
-    ret=price_returns(s,ltp)
+    # Drop a carried/duplicate trailing bar (e.g. a non-trading day that repeats
+    # the last close) so day-offset returns are measured from the real prior session.
+    s_ret = s[:-1] if (len(s) >= 2 and s[-1]["c"] == s[-2]["c"]) else s
+    ret=price_returns(s_ret,ltp)
+    # 1-Day return = the actual last-session change (matches the header), never 0
+    # just because today was a market holiday / the bar was carried forward.
+    ret["1D"]=chgp
     ee=entry_exit(s,ltp)
 
     # Fill pivot-based targets into ret
@@ -379,7 +405,8 @@ def compute(data):
         "ltp":ltp,"chg":chg,"chgp":chgp,"ohlc":ohlc,
         "h52":lat.get("h52",0),"l52":lat.get("l52",0),
         "rs":lat.get("rs",1.0),"avg20":lat.get("avg20",0),
-        "rsi":rsi(s),"macd":macd(s),"adx":adx(s),
+        "rsi":rsi(s),"rsi_w":rsi_weekly(s),"rsi_m":rsi_monthly(s),
+        "macd":macd(s),"adx":adx(s),
         "srsi":stoch_rsi(s),"cci":cci(s),
         "mas":moving_averages(s),"pp":pivots(s),
         "sr":sr_zones(s),"patterns":detect_patterns(s),
