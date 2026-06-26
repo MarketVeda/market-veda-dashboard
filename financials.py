@@ -85,21 +85,25 @@ def extract_shareholding(fin, n=8):
     result = []
     for q in hdrs:
         entry = {"q": q}
-        # Promoter — various field names used
-        prom = (rows.get("Promoters", {}).get(q) or
+        # Promoter — various field names used (screener.in uses a trailing "+")
+        prom = (rows.get("Promoters+", {}).get(q) or
+                rows.get("Promoters", {}).get(q) or
                 rows.get("Promoter", {}).get(q) or
                 rows.get("Promoter & Promoter Group", {}).get(q))
         # FII / FPI
-        fii  = (rows.get("FII", {}).get(q) or
+        fii  = (rows.get("FIIs+", {}).get(q) or
+                rows.get("FII", {}).get(q) or
                 rows.get("FPIs", {}).get(q) or
                 rows.get("Foreign Institutional Investors", {}).get(q) or
                 rows.get("FII + FPI", {}).get(q))
         # DII
-        dii  = (rows.get("DII", {}).get(q) or
+        dii  = (rows.get("DIIs+", {}).get(q) or
+                rows.get("DII", {}).get(q) or
                 rows.get("Domestic Institutional Investors", {}).get(q) or
                 rows.get("Mutual Funds", {}).get(q))
         # Retail / Public
-        pub  = (rows.get("Public", {}).get(q) or
+        pub  = (rows.get("Public+", {}).get(q) or
+                rows.get("Public", {}).get(q) or
                 rows.get("Retail", {}).get(q))
 
         entry["promoter"] = round(float(prom), 2) if prom else None
@@ -212,16 +216,50 @@ def shareholding_analysis(sh_data):
 def cagr(vals, years):
     v=[x for x in vals if x and isinstance(x,(int,float)) and x>0]
     if len(v)<2 or years<=0: return None
-    return round(((v[-1]/v[0])**(1/years)-1)*100,1)
+    return round(((v[-1]/v[0])**(1/years)-1)*100,2)
 
 
-def pe_analysis(fin, cur_pe, sector, sym):
+_MON={"Jan":1,"Feb":2,"Mar":3,"Apr":4,"May":5,"Jun":6,
+      "Jul":7,"Aug":8,"Sep":9,"Oct":10,"Nov":11,"Dec":12}
+
+def hist_pe_from_prices(eod, annual):
+    """
+    Derive per-financial-year average PE from our own daily price history and the
+    annual EPS series (avg close over the FY / EPS for that year). Lets us show a
+    5Y / 10Y mean PE even when the source ratios table has no PE history row.
+    """
+    import datetime
+    if not eod or not annual:
+        return []
+    closes=[(e["date"], e["c"]) for e in eod if e.get("c")]
+    if not closes:
+        return []
+    series=[]
+    for r in annual:
+        yr=str(r.get("yr","")).split(); eps=r.get("eps")
+        if len(yr)!=2 or not isinstance(eps,(int,float)) or eps<=0:
+            continue
+        mon=_MON.get(yr[0]);
+        if not mon:
+            continue
+        y=int(yr[1])
+        end=datetime.date(y, mon, 28).isoformat()
+        start=datetime.date(y-1, mon, 1).isoformat()
+        vals=[c for d,c in closes if start<=d<=end]
+        if vals:
+            series.append(round((sum(vals)/len(vals))/eps, 2))
+    return series
+
+
+def pe_analysis(fin, cur_pe, sector, sym, eod=None, annual=None):
     rat=(fin.get("ratios") or {}).get("rows",{})
     pe_hist=[v for v in (rat.get("Price to Earning",{}) or rat.get("PE",{})).values()
              if isinstance(v,(int,float)) and v>0]
-    pe5 =round(sum(pe_hist[-5:])/len(pe_hist[-5:]),1) if len(pe_hist)>=5 else None
-    pe10=round(sum(pe_hist[-10:])/len(pe_hist[-10:]),1) if len(pe_hist)>=10 else (
-         round(sum(pe_hist)/len(pe_hist),1) if pe_hist else None)
+    # Fallback: synthesise PE history from our price + EPS data when ratios lack it
+    if len(pe_hist)<2:
+        pe_hist=hist_pe_from_prices(eod, annual) or pe_hist
+    pe5 =round(sum(pe_hist[-5:])/len(pe_hist[-5:]),2) if len(pe_hist)>=2 else None
+    pe10=round(sum(pe_hist[-10:])/len(pe_hist[-10:]),2) if len(pe_hist)>=8 else None
     sect_pe, peers = sector_pe_data(sector, sym)
 
     if cur_pe and pe5:
@@ -253,7 +291,7 @@ def value_analysis(annual, km, pe_an):
     yrs=len(annual)-1 if len(annual)>1 else 1
 
     rev_cagr=cagr(revs,yrs); np_cagr=cagr(nps,yrs); eps_cagr=cagr(epss,yrs)
-    avg_roe=round(sum(float(r) for r in roe_vals)/len(roe_vals),1) if roe_vals else None
+    avg_roe=round(sum(float(r) for r in roe_vals)/len(roe_vals),2) if roe_vals else None
 
     cur_pe=pe_an.get("cur_pe"); pe5=pe_an.get("pe5")
 
@@ -313,7 +351,7 @@ def value_analysis(annual, km, pe_an):
     }
 
 
-def process(fin, sym, sector):
+def process(fin, sym, sector, eod=None):
     if not fin:
         return {
             "annual":[],"qtrs":[],"pe":{},"km":{},
@@ -326,10 +364,12 @@ def process(fin, sym, sector):
             }
         }
     km=fin.get("key_metrics") or {}
-    cur_pe=km.get("P/E") or km.get("P/E Ratio") or km.get("Price to Earning")
+    # Prefer the actual reported screener PE ("Stock P/E") over any fallback value
+    cur_pe=(km.get("Stock P/E") or km.get("P/E") or
+            km.get("P/E Ratio") or km.get("Price to Earning"))
     annual=extract_annual(fin)
     qtrs=extract_quarterly(fin)
-    pe=pe_analysis(fin,cur_pe,sector,sym)
+    pe=pe_analysis(fin,cur_pe,sector,sym,eod,annual)
     va=value_analysis(annual,km,pe)
     sh_data=extract_shareholding(fin)
     sh_analysis=shareholding_analysis(sh_data)
