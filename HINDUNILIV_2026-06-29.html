@@ -1,0 +1,570 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MarketVeda — HINDUNILIV — 29 Jun 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0F0F0F;font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;color:#111827;padding:12px;display:flex;flex-direction:column;align-items:center}
+.card{background:#fff;border-radius:14px;border:2px solid #00C896;box-shadow:0 0 0 1px rgba(0,200,150,.15),0 0 35px rgba(0,200,150,.28),0 0 80px rgba(0,200,150,.10),0 20px 60px rgba(0,0,0,.5);width:100%;max-width:1380px;overflow:hidden}
+.hdr{background:#fff;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #00C896}
+.hdr-t1{font-size:16px;font-weight:900;color:#111827;letter-spacing:1.5px}
+.hdr-t2{font-size:9px;color:#9CA3AF;letter-spacing:2px;margin-top:1px}
+.hdr-meta{display:flex;gap:18px;align-items:center}
+.hdr-mi{display:flex;flex-direction:column;align-items:flex-end}
+.hdr-ml{font-size:9px;color:#9CA3AF;letter-spacing:1px;text-transform:uppercase}
+.hdr-mv{font-size:11px;font-weight:800;color:#111827;margin-top:1px}
+.live-b{background:#00C896;color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:4px;display:flex;align-items:center;gap:4px}
+.dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.nse-b{background:#00C896;color:#fff;font-size:10px;font-weight:800;padding:2px 10px;border-radius:4px}
+.btns{display:flex;gap:6px}
+.btn{padding:5px 12px;border-radius:4px;border:none;cursor:pointer;font-size:11px;font-weight:700}
+.btn-t{background:#00C896;color:#fff}
+.btn-o{background:transparent;border:1px solid #E5E7EB;color:#6B7280}
+.body{padding:12px 14px}
+.sec{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;padding-bottom:3px;border-bottom:2px solid #00C896;color:#009B77}
+.panel{background:#fff;border-radius:8px;border:1px solid #E5E7EB;padding:10px 12px;box-shadow:0 1px 4px rgba(0,200,150,.06)}
+.panel:hover{border-color:#00C896;box-shadow:0 0 12px rgba(0,200,150,.15);transition:.3s}
+.row{display:grid;gap:10px;margin-bottom:10px}
+.r1{grid-template-columns:repeat(5,1fr)}
+.r-ind{grid-template-columns:1fr 1fr 1.2fr 1fr}
+.r-tbl1{grid-template-columns:1.7fr 1fr 1fr}
+.r-tbl2{grid-template-columns:2fr 1.15fr}
+.r-tbl3{grid-template-columns:1.5fr 1fr 1fr}
+.r-tbl4{grid-template-columns:1.4fr 1.1fr 1fr}
+.r-chart{grid-template-columns:1.85fr 1fr;margin-bottom:10px}
+.r-sig{grid-template-columns:1fr 1fr 1.5fr}
+.co-name{font-size:22px;font-weight:900;color:#00C896;margin-bottom:3px;line-height:1;text-shadow:0 0 12px rgba(0,200,150,.3)}
+.co-full{font-size:9px;color:#9CA3AF;margin-bottom:8px}
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
+.ov-l{font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.8px}
+.ov-v{font-size:11px;font-weight:700;color:#111827;margin-top:1px}
+.cmp{font-size:32px;font-weight:900;color:#111827;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums}
+.ohlc-g{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-top:7px}
+.oh-l{font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.8px}
+.oh-v{font-size:11px;font-weight:700;color:#111827;font-variant-numeric:tabular-nums}
+.chart-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px}
+.tf-row{display:flex;gap:3px;flex-wrap:wrap}
+.tf-btn{padding:3px 10px;border-radius:3px;border:1px solid #E5E7EB;background:transparent;color:#9CA3AF;font-size:11px;cursor:pointer;font-weight:600;transition:.15s}
+.tf-btn.active,.tf-btn:hover{background:#00C896;color:#fff;border-color:#00C896;box-shadow:0 0 8px rgba(0,200,150,.35)}
+.chart-tabs{display:flex;gap:3px;flex-wrap:wrap}
+.ct-btn{padding:3px 10px;border-radius:3px;border:1px solid #E5E7EB;background:transparent;color:#9CA3AF;font-size:11px;cursor:pointer;font-weight:600;transition:.15s}
+.ct-btn.active,.ct-btn:hover{background:#E6FAF5;color:#009B77;border-color:#00C896}
+#chartWrap{position:relative;height:320px;background:#FAFFFE;border-radius:6px;border:1px solid #D1FAF0}
+.ts-r{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F3F4F6}
+.ts-r:last-child{border-bottom:none}
+.ts-l{font-size:11px;color:#374151}
+.ts-v{font-size:11px;font-weight:700;color:#111827}
+.bull{color:#00C896;font-weight:800}
+.bear{color:#F43F5E;font-weight:800}
+.tbl{border:1px solid #E5E7EB;border-radius:7px;overflow:hidden;overflow-x:auto;margin-top:2px}
+.tbl+.tbl{margin-top:7px}
+table{width:100%;border-collapse:collapse;font-size:10px;table-layout:auto}
+th{font-size:9px;color:#fff;background:#009B77;letter-spacing:.6px;text-transform:uppercase;text-align:left;padding:4px 6px;white-space:nowrap}
+th:not(:first-child){text-align:right}
+td{padding:3px 6px;border-bottom:1px solid #F3F4F6;color:#111827;font-variant-numeric:tabular-nums;white-space:nowrap}
+td:not(:first-child){text-align:right}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even) td{background:#F4FDFB}
+/* faint spare placeholders — reserved room for a missing row / column */
+th.sp{background:#74CFB7;color:#E9FBF6;text-align:center;font-weight:700}
+td.sp{color:#D7DEE2!important;background:#FCFEFD!important;font-weight:400!important;text-align:center!important}
+tr.sp td{background:#FCFEFD!important;color:#DCE3E6;border-bottom:1px dashed #EEF3F2;font-weight:400}
+.sigb{color:#00C896;font-weight:800}
+.sigr{color:#F43F5E;font-weight:800}
+.beat{color:#00C896;font-weight:800;font-size:10px}
+.val-g{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.val-c{background:#F4FDFB;border:1px solid #D1FAF0;border-radius:6px;padding:6px 8px;text-align:center}
+.val-l{font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.8px}
+.val-v{font-size:14px;font-weight:900;color:#111827;margin-top:2px}
+.vol-lbl{font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
+.vol-v{font-size:15px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums}
+.risk-r{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F3F4F6}
+.risk-r:last-child{border-bottom:none}
+.risk-l{font-size:11px;color:#374151}
+.rlow{background:#E6FAF5;color:#009B77;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px}
+.rmed{background:#FEF9EE;color:#D97706;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px}
+.rhigh{background:#FFF0F3;color:#F43F5E;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px}
+.sr-r{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #F3F4F6;font-size:11px}
+.sr-r:last-child{border-bottom:none}
+.trg{font-size:10px;padding:2px 0 2px 6px;line-height:1.4;margin-bottom:2px}
+.trg.pos{border-left:2px solid #00C896;color:#374151}
+.trg.neg{border-left:2px solid #F43F5E;color:#374151}
+.conf-bar{height:5px;background:#E5E7EB;border-radius:3px;overflow:hidden;margin-top:3px}
+.conf-fill{height:100%;background:#00C896;border-radius:3px;box-shadow:0 0 6px rgba(0,200,150,.5)}
+.pat-card{background:#F4FDFB;border:1px solid #D1FAF0;border-radius:6px;padding:6px 8px;margin-bottom:5px}
+.pat-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.pat-name{font-size:11px;font-weight:800;color:#111827}
+.pat-desc{font-size:10px;color:#6B7280;line-height:1.4}
+.va-rem{font-size:10px;color:#374151;padding:2px 0 2px 5px;border-left:2px solid #D1FAF0;margin-bottom:3px;line-height:1.4}
+.sh-row{margin-bottom:7px}
+.sh-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.sh-lbl{font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.8px}
+.sh-track{height:5px;background:#E5E7EB;border-radius:3px;overflow:hidden}
+.sh-fill{height:100%;border-radius:3px}
+.ee-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:11px}
+.ee-c{border-radius:6px;padding:5px 7px;border:1px solid #E5E7EB}
+.ee-l{font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.8px;margin-bottom:1px}
+.ee-v{font-size:12px;font-weight:800;color:#111827}
+.tgt-note{font-size:9px;color:#9CA3AF;margin-top:4px;padding:3px 6px;background:#F4FDFB;border-radius:4px;border-left:2px solid #D1FAF0}
+.dl{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.dl-r{display:flex;align-items:center;gap:5px;font-size:10px;color:#374151}
+.dot2{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.note{font-size:10px;color:#374151;padding:3px 0 3px 6px;border-left:2px solid #00C896;margin-bottom:4px;line-height:1.4}
+.dma-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:9px;color:#6B7280;margin-top:4px}
+.dma-dot{width:20px;height:2px;display:inline-block;margin-right:3px;vertical-align:middle}
+</style></head><body>
+<div class="card">
+<div class="hdr">
+  <div><div class="hdr-t1">⚡ MARKET VEDA</div><div class="hdr-t2">Complete Stock Intelligence · HINDUNILIV · 29 Jun 2026</div></div>
+  <div class="hdr-meta">
+    <div class="hdr-mi"><span class="hdr-ml">Date</span><span class="hdr-mv">29 Jun 2026</span></div>
+    <div class="hdr-mi"><span class="hdr-ml">Time</span><span class="hdr-mv">16:11</span></div>
+    <div class="hdr-mi"><span class="hdr-ml">Sector</span><span class="hdr-mv" style="color:#00C896">DIVERSIFIED</span></div>
+    <div class="nse-b">NSE</div>
+    <div class="live-b"><div class="dot"></div>Live</div>
+  </div>
+  <div class="btns">
+    <button class="btn btn-o" onclick="window.print()">🖨 PDF</button>
+    <button class="btn btn-t" onclick="dlPage()">⬇ Save</button>
+  </div>
+</div>
+<div class="body">
+
+<!-- Row 1: Overview | Price | Valuation | Tech Summary -->
+<div class="row r1">
+  <div class="panel">
+    <div class="sec">Overview</div>
+    <div class="co-name">HINDUNILIV</div><div class="co-full">HINDUNILIV Ltd</div>
+    <div class="ov-grid">
+      <div><div class="ov-l">Market Cap</div><div class="ov-v">N/A</div></div>
+      <div><div class="ov-l">52W H / L</div><div class="ov-v">N/A / N/A</div></div>
+      <div><div class="ov-l">P/E (TTM)</div><div class="ov-v">N/A</div></div>
+      <div><div class="ov-l">Book Value</div><div class="ov-v">N/A</div></div>
+      <div><div class="ov-l">ROE</div><div class="ov-v" style="color:#00C896">N/A</div></div>
+      <div><div class="ov-l">RS / Nifty</div><div class="ov-v" style="color:#00C896">1.00</div></div>
+      <div><div class="ov-l">ATR (14)</div><div class="ov-v">N/A</div></div>
+      <div><div class="ov-l">Minervini</div><div class="ov-v" style="color:#F43F5E">❌ Unknown</div></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sec">Current Price</div>
+    <div class="cmp">₹0.00</div>
+    <div style="font-size:13px;font-weight:700;margin-top:3px;color:#00C896">▲ 0.00 (0.00%)</div>
+    <div class="ohlc-g">
+      <div><div class="oh-l">Open</div><div class="oh-v">0.00</div></div>
+      <div><div class="oh-l">High</div><div class="oh-v" style="color:#00C896">0.00</div></div>
+      <div><div class="oh-l">Low</div><div class="oh-v" style="color:#F43F5E">0.00</div></div>
+      <div><div class="oh-l">Prev Close</div><div class="oh-v">0.00</div></div>
+      <div><div class="oh-l">VWAP</div><div class="oh-v">N/A</div></div>
+      <div><div class="oh-l">Vol Today</div><div class="oh-v">N/A</div></div>
+      <div><div class="oh-l">Avg Vol 20D</div><div class="oh-v">N/A</div></div>
+      <div><div class="oh-l">P/B</div><div class="oh-v">N/A</div></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sec">Valuation Metrics</div>
+    <div class="val-g">
+      <div class="val-c"><div class="val-l">P/E (TTM)</div><div class="val-v">N/A</div></div>
+      <div class="val-c"><div class="val-l">P/B Ratio</div><div class="val-v">N/A</div></div>
+      <div class="val-c"><div class="val-l">PEG</div><div class="val-v" style="color:#F59E0B">N/A</div></div>
+      <div class="val-c"><div class="val-l">Rev CAGR 5Y</div><div class="val-v" style="color:#00C896">N/A</div></div>
+      <div class="val-c"><div class="val-l">PAT CAGR 5Y</div><div class="val-v" style="color:#00C896">N/A</div></div>
+      <div class="val-c"><div class="val-l">ROE</div><div class="val-v">N/A</div></div>
+    </div>
+  </div>
+  <div class="panel" style="display:flex;flex-direction:column">
+    <div class="sec">Recommendation</div>
+    <div style="font-size:40px;font-weight:900;line-height:1;color:#F59E0B;text-shadow:0 0 12px #F59E0B44">HOLD</div>
+    <div style="margin-top:9px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><div class="vol-lbl">Target</div><div style="font-size:13px;font-weight:900">N/A</div></div>
+      <div><div class="vol-lbl">Upside</div><div style="font-size:13px;font-weight:800;color:#00C896">+0%</div></div>
+      <div><div class="vol-lbl">Confidence</div><div style="font-size:13px;font-weight:800;color:#00C896">40.0%</div></div>
+      <div><div class="vol-lbl">R : R</div><div style="font-size:13px;font-weight:800">1:0</div></div>
+      <div><div class="vol-lbl">Stop Loss</div><div style="font-size:13px;font-weight:800;color:#F43F5E">N/A</div></div>
+      <div><div class="vol-lbl">Entry Zone</div><div style="font-size:12px;font-weight:800;color:#009B77">₹0.00–0.00</div></div>
+    </div>
+    <div style="margin-top:auto">
+      <div class="vol-lbl" style="margin-top:9px">Confidence 40.0%</div>
+      <div class="conf-bar" style="margin:3px 0 0"><div class="conf-fill" style="width:40.0%"></div></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sec">Analyst Sentiment</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <canvas id="dc" width="74" height="74"></canvas>
+      <div>
+        <div style="font-size:22px;font-weight:900;color:#00C896">15%</div>
+        <div style="font-size:10px;font-weight:700;color:#00C896">SELL</div>
+      </div>
+    </div>
+    <div class="dl" style="margin-top:9px">
+      <div class="dl-r"><div class="dot2" style="background:#00C896"></div><span>BUY 15%</span></div>
+      <div class="dl-r"><div class="dot2" style="background:#009B77"></div><span>HOLD 25%</span></div>
+      <div class="dl-r"><div class="dot2" style="background:#F43F5E"></div><span>SELL 60%</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart row -->
+<div class="row r-chart">
+  <div class="panel" style="padding:10px 14px">
+    <div class="chart-toolbar">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="tf-row">
+          <button class="tf-btn" onclick="setTF('1M',this)">1M</button>
+          <button class="tf-btn" onclick="setTF('2M',this)">2M</button>
+          <button class="tf-btn" onclick="setTF('3M',this)">3M</button>
+          <button class="tf-btn" onclick="setTF('6M',this)">6M</button>
+          <button class="tf-btn active" onclick="setTF('1Y',this)">1Y</button>
+          <button class="tf-btn" onclick="setTF('2Y',this)">2Y</button>
+          <button class="tf-btn" onclick="setTF('5Y',this)">5Y</button>
+        </div>
+        <div class="chart-tabs">
+          <button class="ct-btn active" onclick="setChart('price',this)">Price</button>
+          <button class="ct-btn" onclick="setChart('pe',this)">PE Ratio</button>
+          <button class="ct-btn" onclick="setChart('pb',this)">Price to Book</button>
+        </div>
+      </div>
+      <div class="dma-legend">
+        <span><span class="dma-dot" style="background:#00C896"></span>DMA10</span>
+        <span><span class="dma-dot" style="background:#009B77"></span>DMA20</span>
+        <span><span class="dma-dot" style="background:#F59E0B"></span>DMA50</span>
+        <span><span class="dma-dot" style="background:#374151;height:3px"></span>DMA100</span>
+        <span><span class="dma-dot" style="background:#F43F5E;height:3px"></span>DMA200</span>
+        <span><span class="dma-dot" style="background:rgba(0,200,150,.4)"></span>Vol↑</span>
+        <span><span class="dma-dot" style="background:rgba(244,63,94,.4)"></span>Vol↓</span>
+      </div>
+    </div>
+    <div id="chartWrap"><canvas id="pc"></canvas></div>
+  </div>
+  <div class="panel" style="display:flex;flex-direction:column">
+    <div class="sec">Technical Summary</div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+      <div class="ts-r"><span class="ts-l">Trend</span><span class="bull">Bullish ▲</span></div>
+      <div class="ts-r"><span class="ts-l">RSI (14) · Daily</span><span class="ts-v">N/A</span></div>
+      <div class="ts-r"><span class="ts-l">RSI (14) · Weekly</span><span class="ts-v">N/A</span></div>
+      <div class="ts-r"><span class="ts-l">RSI (14) · Monthly</span><span class="ts-v">N/A</span></div>
+      <div class="ts-r"><span class="ts-l">MACD</span><span class="bear">N/A</span></div>
+      <div class="ts-r"><span class="ts-l">ADX (14)</span><span class="ts-v">N/A</span></div>
+      <div class="ts-r"><span class="ts-l">Stoch RSI</span><span class="ts-v">N/A</span></div>
+      <div class="ts-r"><span class="ts-l">CCI (20)</span><span class="ts-v">N/A</span></div>
+      <div class="ts-r"><span class="ts-l">RS Percentile</span><span class="bull">50/99</span></div>
+      <div class="ts-r"><span class="ts-l">MAs Bullish</span><span class="bear">0/4</span></div>
+      <div class="ts-r"><span class="ts-l">vs SMA20</span><span class="bull">+0.00%</span></div>
+      <div class="ts-r"><span class="ts-l">vs SMA200</span><span class="bull">+0.00%</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Indicators row: Risk Analysis | S&R · Pivot | Moving Averages | Volume -->
+<div class="row r-ind">
+  <div class="panel">
+    <div class="sec">Risk Analysis</div><div class="risk-r"><span class="risk-l">Market</span><span class="rlow">Low</span></div><div class="risk-r"><span class="risk-l">Sector</span><span class="rmed">Medium</span></div><div class="risk-r"><span class="risk-l">Company</span><span class="rhigh">High</span></div><div class="risk-r"><span class="risk-l">Financial</span><span class="rlow">Low</span></div><div class="risk-r"><span class="risk-l">Liquidity</span><span class="rlow">Low</span></div><div class="risk-r" style="border-top:1px solid #E5E7EB;margin-top:3px;padding-top:4px"><span class="risk-l" style="font-weight:800">Overall</span><span class="rmed">Medium</span></div>
+  </div>
+  <div class="panel">
+    <div class="sec">S&amp;R · Pivot</div>
+    <div class="sr-r"><span style="color:#9CA3AF">R3</span><span style="font-weight:700;color:#F43F5E">N/A</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">R2</span><span style="font-weight:700;color:#F43F5E">N/A</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">R1</span><span style="font-weight:700;color:#F43F5E">N/A</span></div>
+    <div class="sr-r" style="border-top:2px solid #00C896;border-bottom:2px solid #00C896;margin:2px 0;padding:3px 0"><span style="font-weight:900">PIVOT</span><span style="font-weight:900">N/A</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S1</span><span style="font-weight:700;color:#00C896">N/A</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S2</span><span style="font-weight:700;color:#00C896">N/A</span></div>
+    <div class="sr-r"><span style="color:#9CA3AF">S3</span><span style="font-weight:700;color:#00C896">N/A</span></div>
+  </div>
+  <div class="panel">
+    <div class="sec">Moving Averages</div>
+    <div class="tbl">
+    <table><thead><tr><th>Period</th><th>SMA</th><th>EMA</th><th>Signal</th></tr></thead><tbody><tr><td>MA 9</td><td>N/A</td><td>N/A</td><td class="">N/A</td></tr><tr><td>MA 20</td><td>N/A</td><td>N/A</td><td class="">N/A</td></tr><tr><td>MA 50</td><td>N/A</td><td>N/A</td><td class="">N/A</td></tr><tr><td>MA 100</td><td>N/A</td><td>N/A</td><td class="">N/A</td></tr><tr><td>MA 200</td><td>N/A</td><td>N/A</td><td class="">N/A</td></tr></tbody></table>
+    </div>
+    <div style="margin-top:5px;padding:4px 7px;background:#F4FDFB;border-radius:5px;border-left:3px solid #00C896;font-size:10px">
+      <span style="font-weight:800;color:#00C896">0/4 Bullish</span> · SMA20 +0.00% · SMA200 +0.00%
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sec">Volume Analysis</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+      <div><div class="vol-lbl">Avg Vol 20D</div><div class="vol-v">N/A</div></div>
+      <div><div class="vol-lbl">Today</div><div class="vol-v">N/A</div></div>
+    </div>
+    <div style="margin-bottom:5px"><div class="vol-lbl">vs Average</div>
+      <div style="font-size:13px;font-weight:800;color:#00C896">▲ 0.00%</div></div>
+    <div><div class="vol-lbl">Delivery %</div>
+      <div style="font-size:12px;font-weight:700;color:#9CA3AF">N/A</div></div>
+  </div>
+</div>
+
+<!-- Annual table + side small tables -->
+<div class="row r-tbl1">
+  <div class="panel">
+    <div class="sec">Financial Summary (₹ Cr) · Annual</div>
+    <div class="tbl">
+    <table><thead><tr><th>Metric</th></tr></thead><tbody><tr><td>Revenue (₹Cr)</td></tr><tr><td>Rev Growth % (YoY)</td></tr><tr><td>Op.Profit</td></tr><tr><td>OPM %</td></tr><tr><td>Net Profit</td></tr><tr><td>EPS (₹)</td></tr><tr><td>ROE %</td></tr></tbody></table>
+    </div>
+    <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
+      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">Rev CAGR: N/A</div>
+      <div style="background:#E6FAF5;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#009B77">PAT CAGR: N/A</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sec">Price Move History</div>
+    <div class="tbl">
+    <table><thead><tr><th>Period</th><th>Return</th></tr></thead><tbody>
+    <tr><td>1 Day</td><td style="font-weight:800;color:#00C896">+0.00%</td></tr><tr><td>2 Days</td><td style="color:#9CA3AF">N/A</td></tr><tr><td>5 Days</td><td style="color:#9CA3AF">N/A</td></tr><tr><td>7 Days</td><td style="color:#9CA3AF">N/A</td></tr><tr><td>1 Week</td><td style="color:#9CA3AF">N/A</td></tr><tr><td>1 Month</td><td style="color:#9CA3AF">N/A</td></tr><tr><td>2 Months</td><td style="color:#9CA3AF">N/A</td></tr><tr><td>6 Months</td><td style="color:#9CA3AF">N/A</td></tr>
+    <tr style="background:#F4FDFB"><td colspan="2" style="font-size:9px;font-weight:800;padding:4px 5px;color:#009B77">📌 Pivot Targets</td></tr>
+    <tr><td>T1 (R1)</td><td style="text-align:right;font-weight:800;color:#00C896">N/A</td></tr>
+    <tr><td>T2 (R2)</td><td style="text-align:right;font-weight:800;color:#00C896">N/A</td></tr>
+    <tr><td>T3 (R3)</td><td style="text-align:right;font-weight:800;color:#00C896">N/A</td></tr>
+    
+    </tbody></table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sec">Notes &amp; Insights</div>
+    <div class="note">Minervini: Unknown — 0/6 filters</div>
+    <div class="note">RS vs Nifty50: 1.00 (50 pctl) ✅ Outperforming</div>
+    <div class="note">1Y CAGR: N/A (historical reference only)</div>
+    <div class="note">Targets R1/R2/R3: N/A / N/A / N/A</div>
+    <div class="note">PE: N/A — Current N/A vs 5Y mean N/A</div>
+  </div>
+</div>
+
+<!-- Quarterly table + side small table -->
+<div class="row r-tbl2">
+  <div class="panel">
+    <div class="sec">Results Tracker — Last 8 Quarters</div>
+    <div class="tbl">
+    <table><thead><tr><th>Quarter</th></tr></thead><tbody><tr><td>Revenue</td></tr><tr><td>Rev Growth % (YoY)</td></tr><tr><td>Net Profit</td></tr><tr><td>EPS (₹)</td></tr><tr><td>OPM %</td></tr><tr><td>Result</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sec">PE Valuation Analysis</div>
+    <div style="background:#9CA3AF18;border:1px solid #9CA3AF30;border-radius:6px;padding:5px;margin-bottom:6px;text-align:center;font-size:10px;font-weight:900;color:#9CA3AF">N/A</div>
+    <div class="tbl" style="margin-bottom:6px">
+      <table>
+      <thead><tr><th>PE Metric</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Current P/E</td><td style="text-align:right;font-weight:800;color:#9CA3AF">N/A</td></tr>
+        <tr><td>5Y Mean PE</td><td style="text-align:right">N/A</td></tr>
+        <tr><td>10Y Mean PE</td><td style="text-align:right">N/A</td></tr>
+        <tr><td>Sector PE</td><td style="text-align:right">N/A</td></tr>
+        <tr><td>EPS Growth (5Y)</td><td style="text-align:right">N/A</td></tr>
+        <tr><td>PEG Ratio</td><td style="text-align:right;font-weight:700;color:#F59E0B">N/A</td></tr>
+      </tbody></table>
+    </div>
+    <div class="vol-lbl" style="margin-bottom:2px">Peers</div>
+    <div class="tbl"><table><thead><tr><th>Peer</th><th>P/E</th></tr></thead><tbody><tr><td colspan="2" style="color:#9CA3AF">N/A</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- Shareholding History + side small tables -->
+<div class="row r-tbl3">
+  <div class="panel">
+    <div class="sec">Shareholding History</div>
+    <div style="color:#9CA3AF;font-size:10px;padding:6px 0">No shareholding history available</div>
+  </div>
+  <div class="panel">
+    <div class="sec">Shareholding Pattern</div>
+    <div style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800;margin-bottom:8px;background:#F59E0B18;border:1px solid #F59E0B35;color:#F59E0B">N/A</div>
+    <div class="sh-row"><span class="sh-lbl">Promoter</span><span style="color:#9CA3AF">N/A</span></div><div class="sh-row"><span class="sh-lbl">FII / FPI</span><span style="color:#9CA3AF">N/A</span></div><div class="sh-row"><span class="sh-lbl">DII / MF</span><span style="color:#9CA3AF">N/A</span></div><div class="sh-row"><span class="sh-lbl">Public</span><span style="color:#9CA3AF">N/A</span></div>
+  </div>
+  <div class="panel">
+    <div class="sec">F&amp;O Open Interest</div>
+    <div class="tbl"><table><thead><tr><th>Date</th><th>OI</th><th>LTP</th></tr></thead><tbody><tr><td colspan="3" style="color:#9CA3AF">Non-FnO</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- Key Triggers + side small tables -->
+<div class="row r-tbl4">
+  <div class="panel">
+    <div class="sec">Key Triggers</div>
+    <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:3px;color:#00C896">✅ Positive</div>
+    
+    <div style="font-size:9px;font-weight:800;text-transform:uppercase;margin-top:5px;margin-bottom:3px;color:#F43F5E">⚠️ Risks</div>
+    
+  </div>
+  <div class="panel">
+    <div class="sec">Entry / Exit Strategy</div>
+    <div class="ee-grid">
+      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">Entry Zone</div><div class="ee-v" style="color:#009B77">₹0.00–₹0.00</div></div>
+      <div class="ee-c" style="background:#FFF0F3;border-color:#FECDD3"><div class="ee-l">Stop Loss</div><div class="ee-v" style="color:#F43F5E">₹0.00</div></div>
+      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T1 (R1)</div><div class="ee-v" style="color:#009B77">₹0.00</div></div>
+      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T2 (R2)</div><div class="ee-v" style="color:#009B77">₹0.00</div></div>
+      <div class="ee-c" style="background:#E6FAF5;border-color:#D1FAF0"><div class="ee-l">T3 (R3)</div><div class="ee-v" style="color:#009B77">₹0.00</div></div>
+      <div class="ee-c" style="background:#FEF9EE;border-color:#FDE68A"><div class="ee-l">R:R</div><div class="ee-v" style="color:#D97706">1:0</div></div>
+    </div>
+    <div class="tgt-note">⚠️ Targets = Pivot R1/R2/R3</div>
+    <div style="margin-top:8px"><div class="sec">Chart Patterns</div><div style="color:#9CA3AF;font-size:10px;padding:4px 0">No patterns detected</div></div>
+  </div>
+  <div class="panel">
+    <div class="sec">Institutional Value Score</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="font-size:34px;font-weight:900;color:#F43F5E;text-shadow:0 0 10px #F43F5E44">0</div>
+      <div><div style="font-size:11px;font-weight:800;color:#F43F5E">No data</div><div style="font-size:9px;color:#9CA3AF;margin-top:1px">/ 100</div></div>
+    </div>
+    
+  </div>
+</div>
+</div></div>
+
+<script>
+const FULL=[];
+const SR=[];
+const LTP=0;
+const PE_RATIO=0;
+const PB_RATIO=0;
+
+let PC=null,CHART_TYPE='price',TF='1Y';
+const TF_N={'1M':21,'2M':42,'3M':63,'6M':126,'1Y':252,'2Y':504,'5Y':9999};
+
+function dlPage(){
+  const b=new Blob([document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='HINDUNILIV_29_Jun_2026.html';a.click();URL.revokeObjectURL(a.href);
+}
+
+function computeSMA(data,n){
+  const out=Array(data.length).fill(null);
+  for(let i=n-1;i<data.length;i++){
+    let s=0;for(let j=i-n+1;j<=i;j++) s+=data[j].c;
+    out[i]=parseFloat((s/n).toFixed(2));
+  }
+  return out;
+}
+
+function getSlice(){
+  const n=TF_N[TF];
+  return n>=FULL.length?FULL:FULL.slice(-n);
+}
+
+function renderChart(){
+  if(PC){PC.destroy();PC=null;}
+  const d=getSlice();
+  if(!d.length) return;
+
+  if(CHART_TYPE==='pe'){ renderRatioChart(d,'PE Ratio',PE_RATIO); return; }
+  if(CHART_TYPE==='pb'){ renderRatioChart(d,'Price to Book',PB_RATIO); return; }
+
+  const labels=d.map((_,i)=>i);
+  const prices=d.map(c=>c.c);
+  const vols=d.map(c=>c.v||0);
+
+  const dma10=computeSMA(d,10);
+  const dma20=computeSMA(d,20);
+  const dma50=computeSMA(d,50);
+  const dma100=computeSMA(d,100);
+  const dma200=computeSMA(d,200);
+
+  const volColors=d.map((c,i)=>c.c>=(i>0?d[i-1].c:c.c)?'rgba(0,200,150,0.35)':'rgba(244,63,94,0.35)');
+  const maxVol=Math.max(...vols);
+  const maxPrice=Math.max(...d.map(c=>c.h).filter(Boolean));
+  const minPrice=Math.min(...d.map(c=>c.l).filter(Boolean));
+  const pRange=maxPrice-minPrice;
+  // Scale volume to bottom 20% of chart
+  const volScale=vols.map(v=>minPrice - pRange*0.05 + (v/maxVol)*pRange*0.18);
+
+  PC=new Chart(document.getElementById('pc'),{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Price',data:prices,borderColor:'#1d4ed8',borderWidth:1.8,pointRadius:0,fill:false,tension:0.1,order:1,yAxisID:'y'},
+        {label:'Volume',data:volScale,backgroundColor:volColors,borderWidth:0,type:'bar',yAxisID:'y',order:10},
+        {label:'DMA10',data:dma10,borderColor:'#00C896',borderWidth:1.2,pointRadius:0,fill:false,tension:0,spanGaps:true,yAxisID:'y'},
+        {label:'DMA20',data:dma20,borderColor:'#009B77',borderWidth:1.2,pointRadius:0,fill:false,tension:0,spanGaps:true,yAxisID:'y'},
+        {label:'DMA50',data:dma50,borderColor:'#F59E0B',borderWidth:1.5,pointRadius:0,fill:false,tension:0,spanGaps:true,yAxisID:'y'},
+        {label:'DMA100',data:dma100,borderColor:'#374151',borderWidth:1.2,pointRadius:0,fill:false,tension:0,spanGaps:true,yAxisID:'y'},
+        {label:'DMA200',data:dma200,borderColor:'#F43F5E',borderWidth:1.5,pointRadius:0,fill:false,tension:0,spanGaps:true,yAxisID:'y'},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:200},
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{color:'#6B7280',font:{size:9},boxWidth:14,padding:8,
+          filter:item=>item.datasetIndex!==1}},
+        tooltip:{backgroundColor:'rgba(17,24,39,.95)',borderColor:'#00C896',borderWidth:1,
+          titleColor:'#fff',bodyColor:'#e0e0e0',padding:9,
+          callbacks:{
+            title:items=>d[items[0].dataIndex]?d[items[0].dataIndex].t:'',
+            label:c=>{
+              if(c.datasetIndex===1) return 'Vol: '+vols[c.dataIndex].toLocaleString();
+              const labs=['Price','','DMA10','DMA20','DMA50','DMA100','DMA200'];
+              return labs[c.datasetIndex]+': ₹'+(c.parsed.y||0).toFixed(2);
+            }
+          }}
+      },
+      scales:{
+        x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#9CA3AF',font:{size:9},maxTicksLimit:10,
+          callback:(v,i)=>{const step=Math.ceil(d.length/10);return i%step===0&&d[i]?d[i].t:null;}}},
+        y:{position:'right',grid:{color:'rgba(0,200,150,.06)'},
+          ticks:{color:'#9CA3AF',font:{size:9},callback:v=>'₹'+v.toLocaleString()},
+          min:minPrice - pRange*0.05,
+          max:maxPrice + pRange*0.03
+        }
+      }
+    }
+  });
+}
+
+function renderRatioChart(d,label,currentVal){
+  const labels=d.map((_,i)=>i);
+  const prices=d.map(c=>c.c);
+  // Approximate ratio by scaling current price ratio
+  const latestPrice=prices[prices.length-1];
+  const ratios=prices.map(p=>currentVal&&latestPrice? parseFloat((p/latestPrice*currentVal).toFixed(2)):null);
+  const medianRatio=currentVal?parseFloat((ratios.filter(Boolean).reduce((a,b)=>a+b,0)/ratios.filter(Boolean).length).toFixed(1)):null;
+
+  PC=new Chart(document.getElementById('pc'),{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:label,data:ratios,borderColor:'#1d4ed8',borderWidth:2,pointRadius:0,fill:false,tension:0.1},
+        ...(medianRatio?[{label:'Median '+label+' = '+medianRatio,data:Array(d.length).fill(medianRatio),
+          borderColor:'#9CA3AF',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}]:[])
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:200},
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{color:'#6B7280',font:{size:9},boxWidth:14,padding:8}},
+        tooltip:{backgroundColor:'rgba(17,24,39,.95)',borderColor:'#00C896',borderWidth:1,
+          titleColor:'#fff',bodyColor:'#e0e0e0',padding:9,
+          callbacks:{
+            title:items=>d[items[0].dataIndex]?d[items[0].dataIndex].t:'',
+            label:c=>label+': '+(c.parsed.y||0).toFixed(1)+'x'
+          }}
+      },
+      scales:{
+        x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#9CA3AF',font:{size:9},maxTicksLimit:10,
+          callback:(v,i)=>{const step=Math.ceil(d.length/10);return i%step===0&&d[i]?d[i].t:null;}}},
+        y:{position:'right',grid:{color:'rgba(0,200,150,.06)'},ticks:{color:'#9CA3AF',font:{size:9},callback:v=>v+'x'}}
+      }
+    }
+  });
+}
+
+function setTF(tf,btn){
+  TF=tf;
+  document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart();
+}
+
+function setChart(type,btn){
+  CHART_TYPE=type;
+  document.querySelectorAll('.ct-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart();
+}
+
+new Chart(document.getElementById('dc'),{
+  type:'doughnut',
+  data:{datasets:[{data:[15,25,60],
+    backgroundColor:['#00C896','#009B77','#F43F5E'],borderWidth:0}]},
+  options:{responsive:false,plugins:{legend:{display:false},tooltip:{enabled:false}}}
+});
+
+window.addEventListener('load',renderChart);
+</script></body></html>
